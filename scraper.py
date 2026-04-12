@@ -57,14 +57,17 @@ def scrape(config: dict | None = None) -> list[dict]:
                 title_lower = title.lower()
 
                 # Hard requirement: title must contain one of these words
-                REQUIRED_TITLE_WORDS = ["intern", "internship", "student", "junior"]
+                REQUIRED_TITLE_WORDS = ["intern", "internship", "student"]
                 if not any(w in title_lower for w in REQUIRED_TITLE_WORDS):
                     continue
 
-                # Filter: company in target list OR keyword found in title
-                company_match = company.lower() in companies
-                keyword_in_title = any(kw.lower() in title_lower for kw in keywords)
-                if not company_match and not keyword_in_title:
+                # Strict company filter: must exactly match a company from config
+                if company.lower() not in companies:
+                    continue
+
+                # Location filter: must contain at least one configured location
+                location_lower = location_val.lower()
+                if not any(loc.lower() in location_lower for loc in locations):
                     continue
 
                 job_id = _make_id(title, company, url)
