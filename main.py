@@ -10,7 +10,7 @@ from notifier import send_alert
 
 load_dotenv()
 
-DRY_RUN = True
+DRY_RUN = False
 
 logging.basicConfig(
     level=logging.INFO,
@@ -34,7 +34,7 @@ def _process_jobs(jobs: list[dict], tier: str):
         new_count += 1
 
         if DRY_RUN:
-            print(f"[DRY RUN][{tier}] {job['title']} @ {job['company']} | {job['location']} | {job['url']}")
+            logger.info("[DRY RUN][%s] %s @ %s | %s | %s", tier, job['title'], job['company'], job['location'], job['url'])
         else:
             send_alert(
                 title=job["title"],
