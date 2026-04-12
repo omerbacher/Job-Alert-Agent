@@ -11,8 +11,8 @@ def _load_config():
         return yaml.safe_load(f)
 
 
-def _make_id(title: str, company: str, url: str) -> str:
-    raw = f"{title}|{company}|{url}"
+def _make_id(title: str, company: str) -> str:
+    raw = f"{title.lower().strip()}|{company.lower().strip()}"
     return hashlib.md5(raw.encode()).hexdigest()
 
 
@@ -70,7 +70,7 @@ def scrape(config: dict | None = None) -> list[dict]:
                 if not any(loc.lower() in location_lower for loc in locations):
                     continue
 
-                job_id = _make_id(title, company, url)
+                job_id = _make_id(title, company)
                 if job_id in seen_ids:
                     continue
                 seen_ids.add(job_id)
