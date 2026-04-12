@@ -1,0 +1,37 @@
+keywords:
+  - student
+  - intern
+  - internship
+  - "software engineer"
+  - firmware
+  - verification
+  - embedded
+  - python
+  - "software developer"
+
+companies:
+  - NVIDIA
+  - Intel
+  - Apple
+  - Google
+  - Microsoft
+  - Amazon
+  - Meta
+  - Mobileye
+  - Qualcomm
+  - Wix
+  - Monday
+  - Checkpoint
+  - Amdocs
+  - Radcom
+  - Tower Semiconductor
+
+locations:
+  - "Israel"
+  - "Tel Aviv"
+
+check_interval_minutes: 10
+hours_active_start: 8
+hours_active_end: 22
+max_results_per_search: 50
+hours_old: 24

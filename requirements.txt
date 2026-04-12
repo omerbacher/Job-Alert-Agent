@@ -1,0 +1,5 @@
+python-jobspy
+python-telegram-bot==20.7
+apscheduler
+anthropic
+python-dotenv
