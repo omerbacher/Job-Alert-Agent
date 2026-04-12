@@ -5,6 +5,10 @@ from jobspy import scrape_jobs
 
 logger = logging.getLogger(__name__)
 
+SEARCH_TERMS = ["intern", "internship", "student"]
+REQUIRED_TITLE_WORDS = ["intern", "internship", "student"]
+MAX_RESULTS = 50
+
 
 def _load_config():
     with open("config.yaml") as f:
@@ -16,32 +20,24 @@ def _make_id(title: str, company: str) -> str:
     return hashlib.md5(raw.encode()).hexdigest()
 
 
-def scrape(config: dict | None = None) -> list[dict]:
-    if config is None:
-        config = _load_config()
-
-    keywords: list[str] = config["keywords"]
-    companies: list[str] = [c.lower() for c in config["companies"]]
-    locations: list[str] = config["locations"]
-    max_results: int = config["max_results_per_search"]
-    hours_old: int = config["hours_old"]
-
+def _scrape_for_companies(companies: list[str], locations: list[str], hours_old: int) -> list[dict]:
+    companies_lower = [c.lower() for c in companies]
     seen_ids: set[str] = set()
     jobs: list[dict] = []
 
-    for keyword in keywords:
+    for term in SEARCH_TERMS:
         for location in locations:
             try:
                 df = scrape_jobs(
                     site_name=["linkedin", "indeed"],
-                    search_term=keyword,
+                    search_term=term,
                     location=location,
-                    results_wanted=max_results,
+                    results_wanted=MAX_RESULTS,
                     hours_old=hours_old,
                     country_indeed="Israel",
                 )
             except Exception as exc:
-                logger.warning("Scrape failed for keyword=%r location=%r: %s", keyword, location, exc)
+                logger.warning("Scrape failed for term=%r location=%r: %s", term, location, exc)
                 continue
 
             if df is None or df.empty:
@@ -52,17 +48,15 @@ def scrape(config: dict | None = None) -> list[dict]:
                 company: str = str(row.get("company", "") or "")
                 location_val: str = str(row.get("location", "") or "")
                 url: str = str(row.get("job_url", "") or "")
-                description: str = str(row.get("description", "") or "")
 
                 title_lower = title.lower()
 
-                # Hard requirement: title must contain one of these words
-                REQUIRED_TITLE_WORDS = ["intern", "internship", "student"]
+                # Title must contain one of the required words
                 if not any(w in title_lower for w in REQUIRED_TITLE_WORDS):
                     continue
 
-                # Strict company filter: must exactly match a company from config
-                if company.lower() not in companies:
+                # Strict company filter: must be in this tier's list
+                if company.lower() not in companies_lower:
                     continue
 
                 # Location filter: must contain at least one configured location
@@ -81,8 +75,42 @@ def scrape(config: dict | None = None) -> list[dict]:
                     "company": company,
                     "location": location_val,
                     "url": url,
-                    "description": description,
                 })
 
-    logger.info("Scraper found %d unique candidate jobs", len(jobs))
+    return jobs
+
+
+def scrape_priority(config: dict | None = None) -> list[dict]:
+    if config is None:
+        config = _load_config()
+    jobs = _scrape_for_companies(
+        companies=config["priority_companies"],
+        locations=config["locations"],
+        hours_old=config["hours_old"],
+    )
+    logger.info("Priority scrape found %d unique jobs", len(jobs))
+    return jobs
+
+
+def scrape_regular(config: dict | None = None) -> list[dict]:
+    if config is None:
+        config = _load_config()
+    jobs = _scrape_for_companies(
+        companies=config["regular_companies"],
+        locations=config["locations"],
+        hours_old=config["hours_old"],
+    )
+    logger.info("Regular scrape found %d unique jobs", len(jobs))
+    return jobs
+
+
+def scrape_defense(config: dict | None = None) -> list[dict]:
+    if config is None:
+        config = _load_config()
+    jobs = _scrape_for_companies(
+        companies=config["defense_companies"],
+        locations=config["locations"],
+        hours_old=config["hours_old"],
+    )
+    logger.info("Defense scrape found %d unique jobs", len(jobs))
     return jobs

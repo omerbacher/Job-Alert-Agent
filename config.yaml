@@ -1,34 +1,21 @@
-keywords:
-  - "student"
-  - "intern"
-  - "internship"
-  - "junior"
-  - "software engineer intern"
-  - "software developer intern"
-  - "backend intern"
-  - "C++ engineer"
-  - "firmware intern"
-  - "embedded intern"
-  - "verification intern"
-  - "PM student"
-  - "product student"
-
-companies:
+priority_companies:
   - "NVIDIA"
   - "Intel"
-  - "Apple"
   - "Google"
   - "Microsoft"
   - "Amazon"
   - "Meta"
+  - "Apple"
   - "Mobileye"
   - "Qualcomm"
+  - "Palo Alto Networks"
+  - "Check Point"
+
+regular_companies:
   - "Wix"
   - "Monday.com"
-  - "Check Point"
-  - "Palo Alto Networks"
-  - "Tower Semiconductor"
   - "Amdocs"
+  - "Tower Semiconductor"
   - "Cadence"
   - "Synopsys"
   - "Cisco"
@@ -37,12 +24,19 @@ companies:
   - "Western Digital"
   - "Broadcom"
   - "Arm"
+  - "Akamai"
+  - "CyberArk"
+  - "Varonis"
+  - "Nice"
+  - "Fiverr"
+  - "Gett"
+
+defense_companies:
+  - "IAI"
   - "Rafael"
   - "Elbit"
-  - "IAI"
 
 locations:
-  - "Israel"
   - "Tel Aviv"
   - "Herzliya"
   - "Raanana"
@@ -51,10 +45,7 @@ locations:
   - "Rishon LeZion"
   - "Holon"
   - "Kfar Saba"
-  - "Netanya"
 
-check_interval_minutes: 10
 hours_active_start: 8
 hours_active_end: 22
-max_results_per_search: 50
-hours_old: 24
+hours_old: 48
