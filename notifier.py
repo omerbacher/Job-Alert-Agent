@@ -13,8 +13,9 @@ def send_alert(title: str, company: str, location: str, url: str):
         chat_id = os.environ["TELEGRAM_CHAT_ID"]
 
         text = (
-            "🚨 New Job Match!\n"
-            f"📌 {title} at {company}\n"
+            "🚨 New Student Job Match!\n"
+            f"📌 {title}\n"
+            f"🏢 {company}\n"
             f"📍 {location}\n"
             f"🔗 {url}"
         )

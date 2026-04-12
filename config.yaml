@@ -1,34 +1,57 @@
 keywords:
-  - student
-  - intern
-  - internship
-  - "software engineer"
-  - firmware
-  - verification
-  - embedded
-  - python
-  - "software developer"
+  - "student"
+  - "intern"
+  - "internship"
+  - "junior"
+  - "software engineer intern"
+  - "software developer intern"
+  - "backend intern"
+  - "C++ engineer"
+  - "firmware intern"
+  - "embedded intern"
+  - "verification intern"
+  - "PM student"
+  - "product student"
 
 companies:
-  - NVIDIA
-  - Intel
-  - Apple
-  - Google
-  - Microsoft
-  - Amazon
-  - Meta
-  - Mobileye
-  - Qualcomm
-  - Wix
-  - Monday
-  - Checkpoint
-  - Amdocs
-  - Radcom
-  - Tower Semiconductor
+  - "NVIDIA"
+  - "Intel"
+  - "Apple"
+  - "Google"
+  - "Microsoft"
+  - "Amazon"
+  - "Meta"
+  - "Mobileye"
+  - "Qualcomm"
+  - "Wix"
+  - "Monday.com"
+  - "Check Point"
+  - "Palo Alto Networks"
+  - "Tower Semiconductor"
+  - "Amdocs"
+  - "Cadence"
+  - "Synopsys"
+  - "Cisco"
+  - "Samsung"
+  - "Applied Materials"
+  - "Western Digital"
+  - "Broadcom"
+  - "Arm"
+  - "Rafael"
+  - "Elbit"
+  - "IAI"
 
 locations:
   - "Israel"
   - "Tel Aviv"
+  - "Herzliya"
+  - "Raanana"
+  - "Rehovot"
+  - "Petah Tikva"
+  - "Rishon LeZion"
+  - "Holon"
+  - "Kfar Saba"
+  - "Netanya"
 
 check_interval_minutes: 10
 hours_active_start: 8

@@ -54,9 +54,11 @@ def scrape(config: dict | None = None) -> list[dict]:
                 url: str = str(row.get("job_url", "") or "")
                 description: str = str(row.get("description", "") or "")
 
-                # Filter: title must contain at least one keyword
                 title_lower = title.lower()
-                if not any(kw.lower() in title_lower for kw in keywords):
+
+                # Hard requirement: title must contain one of these words
+                REQUIRED_TITLE_WORDS = ["intern", "internship", "student", "junior"]
+                if not any(w in title_lower for w in REQUIRED_TITLE_WORDS):
                     continue
 
                 # Filter: company in target list OR keyword found in title
