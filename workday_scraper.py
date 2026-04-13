@@ -7,6 +7,12 @@ logger = logging.getLogger(__name__)
 
 SEARCH_TEXT = "intern student"
 REQUIRED_TITLE_WORDS = ["intern", "internship", "student"]
+BLOCKLIST = [
+    "economics", "marketing", "finance", "accounting", "hr",
+    "human resources", "legal", "sales", "supply chain", "logistics",
+    "graphic", "content writer", "recruiter", "recruitment", "controller",
+    "biology", "chemistry", "physics", "medical", "law", "mba",
+]
 
 
 def _load_config():
@@ -64,6 +70,10 @@ def scrape_workday(config: dict | None = None) -> list[dict]:
 
             # Title must contain one of the required words
             if not any(w in title_lower for w in REQUIRED_TITLE_WORDS):
+                continue
+
+            # Blocklist filter
+            if any(b in title_lower for b in BLOCKLIST):
                 continue
 
             # Location filter

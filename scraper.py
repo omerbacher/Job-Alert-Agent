@@ -7,6 +7,12 @@ logger = logging.getLogger(__name__)
 
 SEARCH_TERMS = ["intern", "internship", "student"]
 REQUIRED_TITLE_WORDS = ["intern", "internship", "student"]
+BLOCKLIST = [
+    "economics", "marketing", "finance", "accounting", "hr",
+    "human resources", "legal", "sales", "supply chain", "logistics",
+    "graphic", "content writer", "recruiter", "recruitment", "controller",
+    "biology", "chemistry", "physics", "medical", "law", "mba",
+]
 MAX_RESULTS = 50
 
 
@@ -53,6 +59,10 @@ def _scrape_for_companies(companies: list[str], locations: list[str], hours_old:
 
                 # Title must contain one of the required words
                 if not any(w in title_lower for w in REQUIRED_TITLE_WORDS):
+                    continue
+
+                # Blocklist filter
+                if any(b in title_lower for b in BLOCKLIST):
                     continue
 
                 # Strict company filter: must be in this tier's list

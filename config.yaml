@@ -56,6 +56,20 @@ workday_companies:
     url: "https://intel.wd1.myworkdayjobs.com/wday/cxs/intel/External/jobs"
     base_url: "https://intel.wd1.myworkdayjobs.com"
 
+smartrecruiters_companies:
+  - name: "Monday.com"
+    id: "MondayComLtd"
+  - name: "Wix"
+    id: "Wix"
+  - name: "CyberArk"
+    id: "CyberArkSoftware"
+  - name: "Check Point"
+    id: "CheckPointSoftwareTechnologies"
+  - name: "Mobileye"
+    id: "Mobileye"
+  - name: "Palo Alto Networks"
+    id: "PaloAltoNetworks"
+
 greenhouse_companies:
   - name: "Meta"
     id: "meta"

@@ -24,35 +24,41 @@ def _make_id(title: str, company: str) -> str:
     return hashlib.md5(raw.encode()).hexdigest()
 
 
-def scrape_greenhouse(config: dict | None = None) -> list[dict]:
+def scrape_smartrecruiters(config: dict | None = None) -> list[dict]:
     if config is None:
         config = _load_config()
 
     global_locations: list[str] = config["locations"]
-    greenhouse_companies: list[dict] = config.get("greenhouse_companies", [])
+    sr_companies: list[dict] = config.get("smartrecruiters_companies", [])
 
     seen_ids: set[str] = set()
     jobs: list[dict] = []
 
-    for company_cfg in greenhouse_companies:
+    for company_cfg in sr_companies:
         name: str = company_cfg["name"]
-        company_id: str = company_cfg["id"]
-        url = f"https://boards-api.greenhouse.io/v1/boards/{company_id}/jobs?content=true"
+        identifier: str = company_cfg["id"]
+        url = f"https://api.smartrecruiters.com/v1/companies/{identifier}/postings?limit=100"
 
         try:
-            response = requests.get(url, timeout=30)
+            response = requests.get(
+                url,
+                headers={"User-Agent": "Mozilla/5.0"},
+                timeout=30,
+            )
             response.raise_for_status()
         except Exception as exc:
-            logger.warning("Greenhouse scrape failed for %s: %s", name, exc)
+            logger.warning("SmartRecruiters scrape failed for %s: %s", name, exc)
             continue
 
         data = response.json()
-        postings = data.get("jobs", [])
+        postings = data.get("content", [])
+        logger.info("SmartRecruiters [%s]: %d total postings", name, data.get("totalFound", 0))
 
         for posting in postings:
-            title: str = posting.get("title", "") or ""
-            location: str = (posting.get("location") or {}).get("name", "") or ""
-            job_url: str = posting.get("absolute_url", "") or ""
+            title: str = posting.get("name", "") or ""
+            location_obj = posting.get("location") or {}
+            full_location: str = location_obj.get("fullLocation", "") or ""
+            job_id_sr: str = str(posting.get("id", ""))
 
             title_lower = title.lower()
 
@@ -64,12 +70,14 @@ def scrape_greenhouse(config: dict | None = None) -> list[dict]:
             if any(b in title_lower for b in BLOCKLIST):
                 continue
 
-            # Location filter: must contain at least one configured location
-            location_lower = location.lower()
+            # Location filter
+            location_lower = full_location.lower()
             if not any(loc.lower() in location_lower for loc in global_locations):
                 continue
 
+            job_url = f"https://jobs.smartrecruiters.com/{identifier}/{job_id_sr}"
             job_id = _make_id(title, name)
+
             if job_id in seen_ids:
                 continue
             seen_ids.add(job_id)
@@ -78,11 +86,9 @@ def scrape_greenhouse(config: dict | None = None) -> list[dict]:
                 "id": job_id,
                 "title": title,
                 "company": name,
-                "location": location,
+                "location": full_location,
                 "url": job_url,
             })
 
-        logger.info("Greenhouse [%s]: fetched %d postings", name, len(postings))
-
-    logger.info("Greenhouse scrape total: %d unique jobs after filters", len(jobs))
+    logger.info("SmartRecruiters scrape total: %d unique jobs after filters", len(jobs))
     return jobs
