@@ -8,9 +8,7 @@
 
 **Autonomous agent that monitors 27 tech company career sites 24/7 and fires Telegram alerts the moment a CS student or intern role goes live — before it reaches LinkedIn.**
 
-<p align="center">
-  <img src="docs/architecture.png" width="900"/>
-</p>
+
 
 ---
 
@@ -25,18 +23,11 @@ Job Alert Agent runs continuously on a cloud server, querying company career sit
 ---
 
 ## Architecture
+ה
 
-```
-  Career Sites                Filter Engine              Delivery
-  ────────────                ─────────────              ────────
-  Workday API    ──┐
-  SmartRecruiters──┤   title filter       ┌── SQLite ──▶ Telegram alert
-  Greenhouse API ──┼──▶ blocklist    ──▶  │   dedup      (per job)
-  Amazon Jobs    ──┤   CS description     └── new? ───▶ Daily digest
-  LinkedIn/Indeed──┘   location filter         │          08:00
-                                               ▼
-                                           jobs.db
-```
+<p align="center">
+  <img src="docs/architecture.png" width="900"/>
+</p>
 
 ---
 
