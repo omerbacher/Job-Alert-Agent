@@ -56,6 +56,18 @@ workday_companies:
     url: "https://intel.wd1.myworkdayjobs.com/wday/cxs/intel/External/jobs"
     base_url: "https://intel.wd1.myworkdayjobs.com"
 
+greenhouse_companies:
+  - name: "Meta"
+    id: "meta"
+  - name: "Monday.com"
+    id: "mondaydotcom"
+  - name: "CyberArk"
+    id: "cyberark"
+  - name: "Check Point"
+    id: "checkpoint"
+  - name: "Fiverr"
+    id: "fiverr"
+
 hours_active_start: 8
 hours_active_end: 22
 hours_old: 72

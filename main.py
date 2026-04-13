@@ -7,6 +7,8 @@ from apscheduler.triggers.cron import CronTrigger
 from db import init_db, is_seen, save_job
 from scraper import scrape_priority, scrape_regular, scrape_defense
 from workday_scraper import scrape_workday
+from greenhouse_scraper import scrape_greenhouse
+from google_scraper import scrape_google
 from notifier import send_alert
 
 load_dotenv()
@@ -82,10 +84,27 @@ def run_workday():
     logger.info("[WORKDAY] Starting scan...")
     config = load_config()
     jobs = scrape_workday(config)
-    # Tag source so notifier can label it
     for job in jobs:
         job["source"] = "Direct Career Site"
     _process_jobs(jobs, "WORKDAY")
+
+
+def run_greenhouse():
+    logger.info("[GREENHOUSE] Starting scan...")
+    config = load_config()
+    jobs = scrape_greenhouse(config)
+    for job in jobs:
+        job["source"] = "Direct Career Site"
+    _process_jobs(jobs, "GREENHOUSE")
+
+
+def run_google():
+    logger.info("[GOOGLE] Starting scan...")
+    config = load_config()
+    jobs = scrape_google(config)
+    for job in jobs:
+        job["source"] = "Direct Career Site"
+    _process_jobs(jobs, "GOOGLE")
 
 
 if __name__ == "__main__":
@@ -103,6 +122,8 @@ if __name__ == "__main__":
     run_regular()
     run_defense()
     run_workday()
+    run_greenhouse()
+    run_google()
 
     scheduler = BlockingScheduler()
 
@@ -134,8 +155,22 @@ if __name__ == "__main__":
         name="workday_scan",
     )
 
+    # Greenhouse: every 30 min during active hours
+    scheduler.add_job(
+        run_greenhouse,
+        trigger=CronTrigger(hour=f"{start_hour}-{end_hour - 1}", minute="*/30"),
+        name="greenhouse_scan",
+    )
+
+    # Google Careers: every 10 min during active hours (priority)
+    scheduler.add_job(
+        run_google,
+        trigger=CronTrigger(hour=f"{start_hour}-{end_hour - 1}", minute="*/10"),
+        name="google_scan",
+    )
+
     logger.info(
-        "Schedulers started — priority/workday every 10min, regular every 30min (%02d:00-%02d:00), defense daily at 09:00.",
+        "Schedulers started — priority/workday/google every 10min, regular/greenhouse every 30min (%02d:00-%02d:00), defense daily at 09:00.",
         start_hour,
         end_hour,
     )
