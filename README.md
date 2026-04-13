@@ -8,7 +8,9 @@
 
 **Autonomous agent that monitors 27 tech company career sites 24/7 and fires Telegram alerts the moment a CS student or intern role goes live — before it reaches LinkedIn.**
 
-<!-- demo GIF placeholder -->
+<p align="center">
+  <img src="docs/architecture.png" width="900"/>
+</p>
 
 ---
 
