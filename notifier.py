@@ -7,7 +7,7 @@ from telegram import Bot
 logger = logging.getLogger(__name__)
 
 
-def send_alert(title: str, company: str, location: str, url: str):
+def send_alert(title: str, company: str, location: str, url: str, source: str = ""):
     try:
         token = os.environ["TELEGRAM_TOKEN"]
         chat_id = os.environ["TELEGRAM_CHAT_ID"]
@@ -19,6 +19,8 @@ def send_alert(title: str, company: str, location: str, url: str):
             f"📍 {location}\n"
             f"🔗 {url}"
         )
+        if source:
+            text += f"\n📡 Source: {source}"
 
         async def _send():
             bot = Bot(token=token)

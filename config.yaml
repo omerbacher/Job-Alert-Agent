@@ -46,6 +46,16 @@ locations:
   - "Holon"
   - "Kfar Saba"
 
+workday_companies:
+  - name: "NVIDIA"
+    url: "https://nvidia.wd5.myworkdayjobs.com/wday/cxs/nvidia/NVIDIAExternalCareerSite/jobs"
+    base_url: "https://nvidia.wd5.myworkdayjobs.com"
+    special_locations:
+      - "Israel"
+  - name: "Intel"
+    url: "https://intel.wd1.myworkdayjobs.com/wday/cxs/intel/External/jobs"
+    base_url: "https://intel.wd1.myworkdayjobs.com"
+
 hours_active_start: 8
 hours_active_end: 22
 hours_old: 72

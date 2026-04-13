@@ -6,6 +6,7 @@ from apscheduler.triggers.cron import CronTrigger
 
 from db import init_db, is_seen, save_job
 from scraper import scrape_priority, scrape_regular, scrape_defense
+from workday_scraper import scrape_workday
 from notifier import send_alert
 
 load_dotenv()
@@ -41,6 +42,7 @@ def _process_jobs(jobs: list[dict], tier: str):
                 company=job["company"],
                 location=job["location"],
                 url=job["url"],
+                source=job.get("source", ""),
             )
 
         save_job(
@@ -76,6 +78,16 @@ def run_defense():
     _process_jobs(jobs, "DEFENSE")
 
 
+def run_workday():
+    logger.info("[WORKDAY] Starting scan...")
+    config = load_config()
+    jobs = scrape_workday(config)
+    # Tag source so notifier can label it
+    for job in jobs:
+        job["source"] = "Direct Career Site"
+    _process_jobs(jobs, "WORKDAY")
+
+
 if __name__ == "__main__":
     init_db()
 
@@ -90,6 +102,7 @@ if __name__ == "__main__":
     run_priority()
     run_regular()
     run_defense()
+    run_workday()
 
     scheduler = BlockingScheduler()
 
@@ -114,8 +127,15 @@ if __name__ == "__main__":
         name="defense_scan",
     )
 
+    # Workday: every 10 min during active hours
+    scheduler.add_job(
+        run_workday,
+        trigger=CronTrigger(hour=f"{start_hour}-{end_hour - 1}", minute="*/10"),
+        name="workday_scan",
+    )
+
     logger.info(
-        "Schedulers started — priority every 10min, regular every 30min (%02d:00-%02d:00), defense daily at 09:00.",
+        "Schedulers started — priority/workday every 10min, regular every 30min (%02d:00-%02d:00), defense daily at 09:00.",
         start_hour,
         end_hour,
     )
