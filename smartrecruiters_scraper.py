@@ -70,6 +70,9 @@ def scrape_smartrecruiters(config: dict | None = None) -> list[dict]:
             if any(b in title_lower for b in BLOCKLIST):
                 continue
 
+            # CS description filter: SmartRecruiters listing API returns no description,
+            # so all jobs pass through (empty string → passes_cs_filter = True)
+
             # Location filter
             location_lower = full_location.lower()
             if not any(loc.lower() in location_lower for loc in global_locations):

@@ -2,6 +2,7 @@ import hashlib
 import logging
 import yaml
 from jobspy import scrape_jobs
+from filters import passes_cs_filter
 
 logger = logging.getLogger(__name__)
 
@@ -63,6 +64,11 @@ def _scrape_for_companies(companies: list[str], locations: list[str], hours_old:
 
                 # Blocklist filter
                 if any(b in title_lower for b in BLOCKLIST):
+                    continue
+
+                # CS description filter
+                description: str = str(row.get("description", "") or "")
+                if not passes_cs_filter(description):
                     continue
 
                 # Strict company filter: must be in this tier's list

@@ -76,6 +76,9 @@ def scrape_workday(config: dict | None = None) -> list[dict]:
             if any(b in title_lower for b in BLOCKLIST):
                 continue
 
+            # CS description filter: Workday listing API returns no description,
+            # so all jobs pass through (empty string → passes_cs_filter = True)
+
             # Location filter
             if not _location_allowed(locations_text, allowed_locations):
                 continue

@@ -2,6 +2,7 @@ import hashlib
 import logging
 import requests
 import yaml
+from filters import passes_cs_filter
 
 logger = logging.getLogger(__name__)
 
@@ -58,6 +59,7 @@ def scrape_amazon(config: dict | None = None) -> list[dict]:
             title: str = posting.get("title", "") or ""
             location: str = posting.get("location", "") or ""
             job_path: str = posting.get("job_path", "") or ""
+            description: str = posting.get("description_short", "") or posting.get("description", "") or ""
 
             title_lower = title.lower()
 
@@ -67,6 +69,10 @@ def scrape_amazon(config: dict | None = None) -> list[dict]:
 
             # Blocklist filter
             if any(b in title_lower for b in BLOCKLIST):
+                continue
+
+            # CS description filter
+            if not passes_cs_filter(description):
                 continue
 
             job_url = BASE_URL + job_path

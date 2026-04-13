@@ -2,6 +2,7 @@ import hashlib
 import logging
 import requests
 import yaml
+from filters import passes_cs_filter
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +54,7 @@ def scrape_greenhouse(config: dict | None = None) -> list[dict]:
             title: str = posting.get("title", "") or ""
             location: str = (posting.get("location") or {}).get("name", "") or ""
             job_url: str = posting.get("absolute_url", "") or ""
+            description: str = posting.get("content", "") or ""
 
             title_lower = title.lower()
 
@@ -62,6 +64,10 @@ def scrape_greenhouse(config: dict | None = None) -> list[dict]:
 
             # Blocklist filter
             if any(b in title_lower for b in BLOCKLIST):
+                continue
+
+            # CS description filter
+            if not passes_cs_filter(description):
                 continue
 
             # Location filter: must contain at least one configured location
