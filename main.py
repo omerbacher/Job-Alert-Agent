@@ -10,6 +10,7 @@ from workday_scraper import scrape_workday
 from greenhouse_scraper import scrape_greenhouse
 from google_scraper import scrape_google
 from smartrecruiters_scraper import scrape_smartrecruiters
+from amazon_scraper import scrape_amazon
 from notifier import send_alert
 
 load_dotenv()
@@ -117,6 +118,15 @@ def run_smartrecruiters():
     _process_jobs(jobs, "SMARTRECRUITERS")
 
 
+def run_amazon():
+    logger.info("[AMAZON] Starting scan...")
+    config = load_config()
+    jobs = scrape_amazon(config)
+    for job in jobs:
+        job["source"] = "Direct Career Site"
+    _process_jobs(jobs, "AMAZON")
+
+
 if __name__ == "__main__":
     init_db()
 
@@ -135,6 +145,7 @@ if __name__ == "__main__":
     run_greenhouse()
     run_google()
     run_smartrecruiters()
+    run_amazon()
 
     scheduler = BlockingScheduler()
 
@@ -185,6 +196,13 @@ if __name__ == "__main__":
         run_smartrecruiters,
         trigger=CronTrigger(hour=f"{start_hour}-{end_hour - 1}", minute="*/30"),
         name="smartrecruiters_scan",
+    )
+
+    # Amazon: every 10 min during active hours (priority)
+    scheduler.add_job(
+        run_amazon,
+        trigger=CronTrigger(hour=f"{start_hour}-{end_hour - 1}", minute="*/10"),
+        name="amazon_scan",
     )
 
     logger.info(
