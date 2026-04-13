@@ -4,14 +4,14 @@ from dotenv import load_dotenv
 from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.cron import CronTrigger
 
-from db import init_db, is_seen, save_job
+from db import init_db, is_seen, save_job, get_recent_jobs
 from scraper import scrape_priority, scrape_regular, scrape_defense
 from workday_scraper import scrape_workday
 from greenhouse_scraper import scrape_greenhouse
 from google_scraper import scrape_google
 from smartrecruiters_scraper import scrape_smartrecruiters
 from amazon_scraper import scrape_amazon
-from notifier import send_alert
+from notifier import send_alert, send_digest
 
 load_dotenv()
 
@@ -127,6 +127,13 @@ def run_amazon():
     _process_jobs(jobs, "AMAZON")
 
 
+def run_digest():
+    logger.info("[DIGEST] Sending daily digest...")
+    jobs = get_recent_jobs(hours=24)
+    send_digest(jobs)
+    logger.info("[DIGEST] Done — %d jobs in digest.", len(jobs))
+
+
 if __name__ == "__main__":
     init_db()
 
@@ -203,6 +210,13 @@ if __name__ == "__main__":
         run_amazon,
         trigger=CronTrigger(hour=f"{start_hour}-{end_hour - 1}", minute="*/10"),
         name="amazon_scan",
+    )
+
+    # Daily digest at 08:00
+    scheduler.add_job(
+        run_digest,
+        trigger=CronTrigger(hour=8, minute=0),
+        name="daily_digest",
     )
 
     logger.info(

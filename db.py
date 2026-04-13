@@ -27,6 +27,24 @@ def is_seen(job_id: str) -> bool:
     return row is not None
 
 
+def get_recent_jobs(hours: int = 24) -> list[dict]:
+    conn = sqlite3.connect(DB_PATH)
+    rows = conn.execute(
+        """
+        SELECT title, company, location, url, date_found
+        FROM jobs
+        WHERE date_found >= datetime('now', ?)
+        ORDER BY date_found DESC
+        """,
+        (f"-{hours} hours",),
+    ).fetchall()
+    conn.close()
+    return [
+        {"title": r[0], "company": r[1], "location": r[2], "url": r[3], "date_found": r[4]}
+        for r in rows
+    ]
+
+
 def save_job(job_id: str, title: str, company: str, location: str, url: str, score: int):
     from datetime import datetime
     conn = sqlite3.connect(DB_PATH)
