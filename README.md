@@ -2,141 +2,71 @@
 
 ![Python](https://img.shields.io/badge/Python-3.11+-blue?logo=python&logoColor=white)
 ![APScheduler](https://img.shields.io/badge/APScheduler-3.x-green)
-![Telegram](https://img.shields.io/badge/Telegram-Bot-26A5E4?logo=telegram&logoColor=white)
-![SQLite](https://img.shields.io/badge/SQLite-3-003B57?logo=sqlite&logoColor=white)
+![Telegram](https://img.shields.io/badge/Alerts-Telegram-26A5E4?logo=telegram&logoColor=white)
+![SQLite](https://img.shields.io/badge/Dedup-SQLite-003B57?logo=sqlite&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
 
-> Autonomous 24/7 job monitoring agent — scrapes 27 tech company career sites directly and delivers instant Telegram alerts for CS student roles.
+**Autonomous agent that monitors 27 tech company career sites 24/7 and fires Telegram alerts the moment a CS student or intern role goes live — before it reaches LinkedIn.**
+
+<!-- demo GIF placeholder -->
 
 ---
 
 ## The Problem
 
-Student and intern roles at top tech companies disappear within hours of posting — sometimes minutes. By the time a listing surfaces on LinkedIn or an aggregator, hundreds of applicants have already applied. Manually checking 27 different career portals throughout the day is not a realistic strategy.
+Student and intern roles at top tech companies fill fast. By the time a listing appears on LinkedIn, it has already been live on the company's own career site for hours — and the first wave of applicants has already applied. Checking 27 portals manually throughout the day is not realistic.
 
 ## The Solution
 
-Job Alert Agent runs 24/7 on a cloud server, querying company career sites **directly** through their native APIs — Workday, SmartRecruiters, Greenhouse, and custom endpoints — before listings ever propagate to LinkedIn. A multi-stage filter engine ensures only relevant CS student and intern roles reach you. Alerts arrive on Telegram within minutes of a job going live.
+Job Alert Agent runs continuously on a cloud server, querying company career sites **directly** through their native APIs — Workday, SmartRecruiters, Greenhouse, and custom endpoints. A four-stage filter pipeline removes irrelevant noise. Alerts land in Telegram within minutes of a job going live, days before aggregators index it.
 
 ---
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                     Scraper Layer                       │
-│  LinkedIn/Indeed · Workday · SmartRecruiters (22 cos)   │
-│  Greenhouse · Amazon Jobs API · Google Careers          │
-└────────────────────────┬────────────────────────────────┘
-                         │
-                         ▼
-┌─────────────────────────────────────────────────────────┐
-│                    Filter Engine                        │
-│  1. Title      → must contain intern / student          │
-│  2. Blocklist  → drops finance, HR, legal, marketing…   │
-│  3. Description→ must reference CS / software eng.      │
-│  4. Location   → Israel cities only                     │
-│  5. Company    → must be on the configured target list  │
-└────────────────────────┬────────────────────────────────┘
-                         │
-                         ▼
-┌─────────────────────────────────────────────────────────┐
-│               Deduplication  (SQLite)                   │
-│   ID = MD5(title.lower() | company.lower())             │
-│   Same job appearing on multiple platforms → sent once  │
-└────────────────────────┬────────────────────────────────┘
-                         │
-                         ▼
-┌─────────────────────────────────────────────────────────┐
-│                  Telegram Delivery                      │
-│   Instant per-job alert + daily 08:00 digest            │
-└─────────────────────────────────────────────────────────┘
+  Career Sites                Filter Engine              Delivery
+  ────────────                ─────────────              ────────
+  Workday API    ──┐
+  SmartRecruiters──┤   title filter       ┌── SQLite ──▶ Telegram alert
+  Greenhouse API ──┼──▶ blocklist    ──▶  │   dedup      (per job)
+  Amazon Jobs    ──┤   CS description     └── new? ───▶ Daily digest
+  LinkedIn/Indeed──┘   location filter         │          08:00
+                                               ▼
+                                           jobs.db
 ```
 
 ---
 
-## Data Sources
+## How It Works
 
-| Company | Platform | Tier |
-|---------|----------|------|
-| NVIDIA | Workday (direct API) | Priority |
-| Intel | Workday (direct API) | Priority |
-| Amazon | Amazon Jobs API | Priority |
-| Google | SmartRecruiters | Priority |
-| Microsoft | SmartRecruiters | Priority |
-| Apple | SmartRecruiters | Priority |
-| Meta | LinkedIn / Indeed | Priority |
-| Mobileye | SmartRecruiters | Priority |
-| Qualcomm | SmartRecruiters | Priority |
-| Palo Alto Networks | SmartRecruiters | Priority |
-| Check Point | SmartRecruiters | Priority |
-| Wix | SmartRecruiters | Regular |
-| Monday.com | SmartRecruiters | Regular |
-| Amdocs | SmartRecruiters | Regular |
-| Tower Semiconductor | SmartRecruiters | Regular |
-| Cadence | SmartRecruiters | Regular |
-| Synopsys | SmartRecruiters | Regular |
-| Cisco | SmartRecruiters | Regular |
-| Samsung | SmartRecruiters | Regular |
-| Broadcom | SmartRecruiters | Regular |
-| Arm | SmartRecruiters | Regular |
-| Akamai | SmartRecruiters | Regular |
-| CyberArk | SmartRecruiters | Regular |
-| Varonis | SmartRecruiters | Regular |
-| Fiverr | SmartRecruiters | Regular |
-| Gett | SmartRecruiters | Regular |
-| Nice | Greenhouse API | Regular |
-| IAI / Rafael / Elbit | LinkedIn / Indeed | Defense (daily) |
+- **Multi-source scraping** — direct Workday/SmartRecruiters/Greenhouse API calls plus LinkedIn and Indeed via JobSpy
+- **Title filter** — job must contain `intern`, `internship`, or `student` (hard gate, no exceptions)
+- **Blocklist** — drops non-CS roles: finance, HR, legal, marketing, sales, supply chain, biology, and 10+ more
+- **CS description check** — if a description is available (>100 chars), it must mention computer science, software engineering, or equivalent Hebrew terms (`תואר`, `מדעי המחשב`)
+- **Location filter** — Israeli cities only; international roles are silently dropped
+- **Deduplication** — job ID is `MD5(title + company)`, so the same role appearing on LinkedIn and Workday is sent exactly once
+- **Daily digest** — every morning at 08:00, a summary of the last 24 hours is sent regardless of individual alerts
 
 ---
 
-## Filter Pipeline
+## Companies Covered
 
-Every scraped job passes through five sequential filters before an alert is sent:
-
-**1. Title filter**
-Title must contain `intern`, `internship`, or `student`. Hard requirement — no exceptions.
-
-**2. Blocklist**
-Drops titles containing non-CS terms: `economics`, `marketing`, `finance`, `accounting`, `HR`, `legal`, `sales`, `supply chain`, `logistics`, `graphic`, `recruiter`, `biology`, `chemistry`, `medical`, `law`, `MBA`, and others.
-
-**3. CS description check**
-When a job description is available and longer than 100 characters, it must mention at least one of: `computer science`, `computer engineering`, `software engineering`, `CS degree`, `B.Sc`, `תואר`, `מדעי המחשב`. Jobs with no description pass through (benefit of the doubt).
-
-**4. Location filter**
-Job location must match one of the configured Israeli cities. Prevents international roles from leaking through.
-
-**5. Company filter**
-For LinkedIn/Indeed results, the company name must exactly match one on the target list (case-insensitive). Direct API scrapers are already scoped per-company.
-
----
-
-## Scanning Schedule
-
-| Scanner | Frequency | Window |
-|---------|-----------|--------|
-| Priority companies (LinkedIn/Indeed) | Every 10 min | 08:00–22:00 |
-| Workday — NVIDIA, Intel | Every 10 min | 08:00–22:00 |
-| Amazon Jobs API | Every 10 min | 08:00–22:00 |
-| SmartRecruiters — 22 companies | Every 30 min | 08:00–22:00 |
-| Greenhouse — Nice | Every 30 min | 08:00–22:00 |
-| Regular companies (LinkedIn/Indeed) | Every 30 min | 08:00–22:00 |
-| Defense companies (LinkedIn/Indeed) | Once daily | 09:00 |
-| Daily digest | Once daily | 08:00 |
+NVIDIA · Intel · Amazon · Google · Microsoft · Apple · Meta · Mobileye · Qualcomm · Palo Alto Networks · Check Point · Wix · Monday.com · CyberArk · Cisco · Broadcom · Arm · Samsung · Synopsys · Cadence · Amdocs · Akamai · Varonis · Fiverr · Gett · Nice · Tower Semiconductor — plus IAI, Rafael, and Elbit via daily defense scan.
 
 ---
 
 ## Tech Stack
 
-| Component | Technology |
-|-----------|------------|
+| Layer | Technology |
+|-------|------------|
 | Language | Python 3.11+ |
-| LinkedIn / Indeed scraping | [JobSpy](https://github.com/Bunsly/JobSpy) |
-| Scheduling | APScheduler 3.x |
-| Deduplication store | SQLite 3 |
-| Telegram notifications | python-telegram-bot 20.x |
-| HTTP / direct API requests | Requests |
-| Config management | YAML |
+| LinkedIn / Indeed | [JobSpy](https://github.com/Bunsly/JobSpy) |
+| Scheduling | APScheduler 3.x (cron triggers) |
+| Deduplication | SQLite 3 |
+| Notifications | python-telegram-bot 20.x |
+| Direct API calls | Requests |
+| Config | YAML |
 | Deployment | Oracle Cloud / DigitalOcean + systemd |
 
 ---
@@ -145,110 +75,51 @@ For LinkedIn/Indeed results, the company name must exactly match one on the targ
 
 ```
 job-alert-agent/
-├── main.py                    # Scheduler, orchestration, DRY_RUN flag
-├── scraper.py                 # LinkedIn/Indeed scraper via JobSpy (3 tiers)
-├── workday_scraper.py         # Workday direct API — NVIDIA, Intel
-├── smartrecruiters_scraper.py # SmartRecruiters API — 22 companies
-├── greenhouse_scraper.py      # Greenhouse API — Nice
-├── amazon_scraper.py          # Amazon Jobs direct API
-├── google_scraper.py          # Google Careers API
-├── filters.py                 # Shared CS description filter logic
-├── notifier.py                # Telegram alerts + daily digest
-├── db.py                      # SQLite: init, dedup check, recent jobs query
-├── config.yaml                # All targeting config — companies, locations, schedule
-├── setup.sh                   # One-command server setup script
-├── start.sh                   # Start the agent (activate venv + run)
-├── update.sh                  # git pull + kill + restart for deployments
-├── render.yaml                # Render.com worker service config
-└── requirements.txt           # Python dependencies
+├── src/
+│   ├── main.py                    # Scheduler, orchestration, DRY_RUN flag
+│   ├── scraper.py                 # LinkedIn/Indeed via JobSpy — 3 tiers
+│   ├── workday_scraper.py         # Workday direct API (NVIDIA, Intel)
+│   ├── smartrecruiters_scraper.py # SmartRecruiters API (22 companies)
+│   ├── greenhouse_scraper.py      # Greenhouse API (Nice)
+│   ├── amazon_scraper.py          # Amazon Jobs direct API
+│   ├── google_scraper.py          # Google Careers API
+│   ├── filters.py                 # Shared CS description filter
+│   ├── notifier.py                # Telegram alerts + daily digest
+│   └── db.py                      # SQLite: init, dedup, recent jobs
+├── config.yaml                    # All targeting config
+├── requirements.txt
+├── .env.example
+├── setup.sh                       # One-command server setup
+├── start.sh                       # Activate venv + run
+├── update.sh                      # git pull + graceful restart
+└── render.yaml                    # Render.com worker config
 ```
 
 ---
 
-## Setup
+## Quick Start
 
-**1. Clone and install**
 ```bash
+# 1. Clone and install
 git clone https://github.com/omerbacher/Job-Alert-Agent.git
 cd Job-Alert-Agent
-python3 -m venv venv
-source venv/bin/activate
+python3 -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
+
+# 2. Configure
+cp .env.example .env
+# Fill in TELEGRAM_TOKEN and TELEGRAM_CHAT_ID
+
+# 3. Run
+python src/main.py
 ```
 
-**2. Configure environment variables**
+Get your credentials: bot token from [@BotFather](https://t.me/BotFather) · chat ID from [@userinfobot](https://t.me/userinfobot)
 
-Create a `.env` file:
-```env
-TELEGRAM_TOKEN=your_bot_token_here
-TELEGRAM_CHAT_ID=your_chat_id_here
-```
-
-- **TELEGRAM_TOKEN** — create a bot via [@BotFather](https://t.me/BotFather)
-- **TELEGRAM_CHAT_ID** — get your ID from [@userinfobot](https://t.me/userinfobot)
-
-**3. Run**
-```bash
-python main.py
-```
-
-The agent runs all scrapers immediately on startup, then continues on schedule.
-
----
-
-## Deployment
-
-**Oracle Cloud / any Linux VPS — one-time setup**
+**Deploy to a VPS:**
 ```bash
 bash <(curl -s https://raw.githubusercontent.com/omerbacher/Job-Alert-Agent/main/setup.sh)
-cd Job-Alert-Agent
-echo "TELEGRAM_TOKEN=..." > .env
-echo "TELEGRAM_CHAT_ID=..." >> .env
-mkdir -p logs
-nohup bash start.sh > logs/agent.log 2>&1 &
-```
-
-**Deploy updates**
-```bash
-bash update.sh   # git pull + graceful restart
-```
-
-**systemd service (recommended)**
-```ini
-[Unit]
-Description=Job Alert Agent
-After=network.target
-
-[Service]
-WorkingDirectory=/root/Job-Alert-Agent
-ExecStart=/root/Job-Alert-Agent/venv/bin/python main.py
-Restart=always
-EnvironmentFile=/root/Job-Alert-Agent/.env
-
-[Install]
-WantedBy=multi-user.target
-```
-
----
-
-## Configuration
-
-All targeting is controlled via `config.yaml` — no code changes needed to add companies or locations:
-
-```yaml
-priority_companies:
-  - "NVIDIA"
-  - "Google"
-  # ...
-
-locations:
-  - "Tel Aviv"
-  - "Herzliya"
-  # ...
-
-hours_old: 72          # how far back to search on startup
-hours_active_start: 8  # active window start
-hours_active_end: 22   # active window end
+# then: fill .env, run: bash start.sh
 ```
 
 ---
