@@ -10,7 +10,7 @@ GOOGLE_CAREERS_URL = "https://careers.google.com/api/v3/search/"
 
 
 def _load_config():
-    with open("config.yaml") as f:
+    with open("config/config.yaml") as f:
         return yaml.safe_load(f)
 
 

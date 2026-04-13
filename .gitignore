@@ -1,5 +1,23 @@
+# Environment & secrets
 .env
-venv/
+
+# Database
+*.db
+
+# Python
 __pycache__/
 *.pyc
-jobs.db
+*.pyo
+venv/
+.venv/
+
+# Logs
+logs/
+*.log
+
+# IDE
+.vscode/
+.idea/
+
+# Claude Code
+.claude/

@@ -86,13 +86,18 @@ job-alert-agent/
 │   ├── filters.py                 # Shared CS description filter
 │   ├── notifier.py                # Telegram alerts + daily digest
 │   └── db.py                      # SQLite: init, dedup, recent jobs
-├── config.yaml                    # All targeting config
+├── config/
+│   ├── config.yaml                # All targeting config — companies, locations, schedule
+│   └── .env.example               # Environment variable template
+├── scripts/
+│   ├── setup.sh                   # One-command server setup
+│   ├── start.sh                   # Activate venv + run
+│   └── update.sh                  # git pull + graceful restart
+├── deploy/
+│   └── render.yaml                # Render.com worker service config
+├── README.md
 ├── requirements.txt
-├── .env.example
-├── setup.sh                       # One-command server setup
-├── start.sh                       # Activate venv + run
-├── update.sh                      # git pull + graceful restart
-└── render.yaml                    # Render.com worker config
+└── .gitignore
 ```
 
 ---
@@ -107,7 +112,7 @@ python3 -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
 
 # 2. Configure
-cp .env.example .env
+cp config/.env.example .env
 # Fill in TELEGRAM_TOKEN and TELEGRAM_CHAT_ID
 
 # 3. Run
@@ -118,8 +123,8 @@ Get your credentials: bot token from [@BotFather](https://t.me/BotFather) · cha
 
 **Deploy to a VPS:**
 ```bash
-bash <(curl -s https://raw.githubusercontent.com/omerbacher/Job-Alert-Agent/main/setup.sh)
-# then: fill .env, run: bash start.sh
+bash <(curl -s https://raw.githubusercontent.com/omerbacher/Job-Alert-Agent/main/scripts/setup.sh)
+# then: fill .env, run: bash scripts/start.sh
 ```
 
 ---

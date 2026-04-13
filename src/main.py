@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 
 def load_config() -> dict:
-    with open("config.yaml") as f:
+    with open("config/config.yaml") as f:
         return yaml.safe_load(f)
 
 
