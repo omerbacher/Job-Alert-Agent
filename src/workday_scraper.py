@@ -83,7 +83,8 @@ def scrape_workday(config: dict | None = None) -> list[dict]:
             if not _location_allowed(locations_text, allowed_locations):
                 continue
 
-            job_url = base_url + external_path
+            site_name = url.split("/")[-2]
+            job_url = f"{base_url}/en-US/{site_name}{external_path}"
             job_id = _make_id(title, name)
 
             if job_id in seen_ids:

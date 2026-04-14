@@ -47,6 +47,7 @@ def _process_jobs(jobs: list[dict], tier: str):
                 location=job["location"],
                 url=job["url"],
                 source=job.get("source", ""),
+                description=job.get("description", ""),
             )
 
         save_job(

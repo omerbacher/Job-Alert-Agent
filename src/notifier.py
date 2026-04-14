@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+import re
 from datetime import datetime
 
 from telegram import Bot
@@ -8,7 +9,24 @@ from telegram import Bot
 logger = logging.getLogger(__name__)
 
 
-def send_alert(title: str, company: str, location: str, url: str, source: str = ""):
+def _extract_bullets(description: str, max_bullets: int = 3) -> list[str]:
+    """Extract up to max_bullets requirement lines from a job description."""
+    if not description or len(description) < 50:
+        return []
+
+    lines = re.split(r"[\n•·\-–]", description)
+    bullets = []
+    for line in lines:
+        line = line.strip()
+        # Keep lines that look like requirements (10–120 chars, not just a header)
+        if 10 <= len(line) <= 120 and not line.endswith(":"):
+            bullets.append(line)
+        if len(bullets) == max_bullets:
+            break
+    return bullets
+
+
+def send_alert(title: str, company: str, location: str, url: str, source: str = "", description: str = ""):
     try:
         token = os.environ["TELEGRAM_TOKEN"]
         chat_id = os.environ["TELEGRAM_CHAT_ID"]
@@ -22,6 +40,10 @@ def send_alert(title: str, company: str, location: str, url: str, source: str = 
         )
         if source:
             text += f"\n📡 Source: {source}"
+
+        bullets = _extract_bullets(description)
+        if bullets:
+            text += "\n📋 Key Requirements:\n" + "\n".join(f"  • {b}" for b in bullets)
 
         async def _send():
             bot = Bot(token=token)
