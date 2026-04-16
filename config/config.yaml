@@ -30,6 +30,13 @@ regular_companies:
   - "Nice"
   - "Fiverr"
   - "Gett"
+  - "Wiz"
+  - "Snyk"
+  - "Taboola"
+  - "Imperva"
+  - "Outbrain"
+  - "IronSource"
+  - "Kaltura"
 
 defense_companies:
   - "IAI"
@@ -101,6 +108,10 @@ smartrecruiters_companies:
     id: "fiverr"
   - name: "Cadence"
     id: "cadencedesign"
+  - name: "Outbrain"
+    id: "Outbrain"
+  - name: "IronSource"
+    id: "ironSource"
 
 greenhouse_companies:
   - name: "Nice"
