@@ -57,19 +57,33 @@ def send_alert(title: str, company: str, location: str, url: str, source: str = 
 
 def send_digest(jobs: list[dict]):
     try:
+        from collections import defaultdict
+
         token = os.environ["TELEGRAM_TOKEN"]
         chat_id = os.environ["TELEGRAM_CHAT_ID"]
 
         date_str = datetime.now().strftime("%d/%m/%Y")
 
         if not jobs:
-            text = "📋 Daily Digest: No new jobs found in the last 24 hours."
+            text = "📋 Daily Digest: No new CS roles found today."
         else:
-            lines = [f"📋 Daily Digest — {date_str}", f"Found {len(jobs)} new student jobs:\n"]
-            for i, job in enumerate(jobs, 1):
-                lines.append(f"{i}. {job['title']} at {job['company']} — {job['location']}")
-                lines.append(f"🔗 {job['url']}\n")
-            text = "\n".join(lines)
+            by_company: dict[str, list[dict]] = defaultdict(list)
+            for job in jobs:
+                by_company[job["company"]].append(job)
+
+            lines = [
+                f"📋 Daily Job Digest — {date_str}",
+                f"{len(jobs)} new CS student roles in the last 24 hours:\n",
+            ]
+            for company, company_jobs in by_company.items():
+                count = len(company_jobs)
+                lines.append(f"🏢 {company} ({count} job{'s' if count > 1 else ''})")
+                for job in company_jobs:
+                    lines.append(f"• {job['title']} — {job['location']}")
+                    lines.append(f"  🔗 {job['url']}")
+                lines.append("")
+
+            text = "\n".join(lines).rstrip()
 
         async def _send():
             bot = Bot(token=token)

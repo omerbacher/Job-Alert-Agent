@@ -7,6 +7,7 @@ from filters import passes_cs_filter
 logger = logging.getLogger(__name__)
 
 SEARCH_TERMS = ["intern", "internship", "student"]
+GENERAL_SEARCH_TERMS = ["intern Israel", "student Israel", "internship Israel"]
 REQUIRED_TITLE_WORDS = ["intern", "internship", "student"]
 BLOCKLIST = [
     "economics", "marketing", "finance", "accounting", "hr",
@@ -117,6 +118,77 @@ def scrape_regular(config: dict | None = None) -> list[dict]:
         hours_old=config["hours_old"],
     )
     logger.info("Regular scrape found %d unique jobs", len(jobs))
+    return jobs
+
+
+def _scrape_no_company_filter(search_terms: list[str], locations: list[str], hours_old: int) -> list[dict]:
+    seen_ids: set[str] = set()
+    jobs: list[dict] = []
+
+    for term in search_terms:
+        try:
+            df = scrape_jobs(
+                site_name=["linkedin", "indeed"],
+                search_term=term,
+                location="Israel",
+                results_wanted=MAX_RESULTS,
+                hours_old=hours_old,
+                country_indeed="Israel",
+            )
+        except Exception as exc:
+            logger.warning("General scrape failed for term=%r: %s", term, exc)
+            continue
+
+        if df is None or df.empty:
+            continue
+
+        for _, row in df.iterrows():
+            title: str = str(row.get("title", "") or "")
+            company: str = str(row.get("company", "") or "")
+            location_val: str = str(row.get("location", "") or "")
+            url: str = str(row.get("job_url", "") or "")
+
+            title_lower = title.lower()
+
+            if not any(w in title_lower for w in REQUIRED_TITLE_WORDS):
+                continue
+
+            if any(b in title_lower for b in BLOCKLIST):
+                continue
+
+            description: str = str(row.get("description", "") or "")
+            if not passes_cs_filter(description):
+                continue
+
+            location_lower = location_val.lower()
+            if not any(loc.lower() in location_lower for loc in locations):
+                continue
+
+            job_id = _make_id(title, company)
+            if job_id in seen_ids:
+                continue
+            seen_ids.add(job_id)
+
+            jobs.append({
+                "id": job_id,
+                "title": title,
+                "company": company,
+                "location": location_val,
+                "url": url,
+            })
+
+    return jobs
+
+
+def scrape_general(config: dict | None = None) -> list[dict]:
+    if config is None:
+        config = _load_config()
+    jobs = _scrape_no_company_filter(
+        search_terms=GENERAL_SEARCH_TERMS,
+        locations=config["locations"],
+        hours_old=config["hours_old"],
+    )
+    logger.info("General scrape found %d unique jobs", len(jobs))
     return jobs
 
 

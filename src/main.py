@@ -5,7 +5,7 @@ from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.cron import CronTrigger
 
 from db import init_db, is_seen, save_job, get_recent_jobs
-from scraper import scrape_priority, scrape_regular, scrape_defense
+from scraper import scrape_priority, scrape_regular, scrape_defense, scrape_general
 from workday_scraper import scrape_workday
 from greenhouse_scraper import scrape_greenhouse
 from google_scraper import scrape_google
@@ -128,6 +128,13 @@ def run_amazon():
     _process_jobs(jobs, "AMAZON")
 
 
+def run_general():
+    logger.info("[GENERAL] Starting scan...")
+    config = load_config()
+    jobs = scrape_general(config)
+    _process_jobs(jobs, "GENERAL")
+
+
 def run_digest():
     logger.info("[DIGEST] Sending daily digest...")
     jobs = get_recent_jobs(hours=24)
@@ -154,6 +161,8 @@ if __name__ == "__main__":
     run_google()
     run_smartrecruiters()
     run_amazon()
+    run_general()
+    run_digest()
 
     scheduler = BlockingScheduler()
 
@@ -213,15 +222,22 @@ if __name__ == "__main__":
         name="amazon_scan",
     )
 
-    # Daily digest at 08:00
+    # General LinkedIn scan: every 30 min, 08:00–22:00
+    scheduler.add_job(
+        run_general,
+        trigger=CronTrigger(hour="8-21", minute="*/30"),
+        name="general_scan",
+    )
+
+    # Daily digest at 09:00
     scheduler.add_job(
         run_digest,
-        trigger=CronTrigger(hour=8, minute=0),
+        trigger=CronTrigger(hour=9, minute=0),
         name="daily_digest",
     )
 
     logger.info(
-        "Schedulers started — priority/workday/google every 10min, regular/greenhouse every 30min (%02d:00-%02d:00), defense daily at 09:00.",
+        "Schedulers started — priority/workday/google every 10min, regular/greenhouse/general every 30min (%02d:00-%02d:00), defense daily at 09:00, digest daily at 09:00.",
         start_hour,
         end_hour,
     )
