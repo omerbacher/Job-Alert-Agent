@@ -86,6 +86,7 @@ def scrape_greenhouse(config: dict | None = None) -> list[dict]:
                 "company": name,
                 "location": location,
                 "url": job_url,
+                "description": description,
             })
 
         logger.info("Greenhouse [%s]: fetched %d postings", name, len(postings))

@@ -116,6 +116,10 @@ smartrecruiters_companies:
 greenhouse_companies:
   - name: "Nice"
     id: "nice"
+  - name: "Wiz"
+    id: "wizinc"
+  - name: "Taboola"
+    id: "taboola"
 
 hours_active_start: 8
 hours_active_end: 22

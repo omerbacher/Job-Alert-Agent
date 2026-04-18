@@ -138,6 +138,9 @@ def run_general():
 def run_digest():
     logger.info("[DIGEST] Sending daily digest...")
     jobs = get_recent_jobs(hours=24)
+    if not jobs:
+        logger.info("[DIGEST] No jobs in last 24h — skipping.")
+        return
     send_digest(jobs)
     logger.info("[DIGEST] Done — %d jobs in digest.", len(jobs))
 
@@ -229,15 +232,15 @@ if __name__ == "__main__":
         name="general_scan",
     )
 
-    # Daily digest at 09:00
+    # Daily digest at 08:00
     scheduler.add_job(
         run_digest,
-        trigger=CronTrigger(hour=9, minute=0),
+        trigger=CronTrigger(hour=8, minute=0),
         name="daily_digest",
     )
 
     logger.info(
-        "Schedulers started — priority/workday/google every 10min, regular/greenhouse/general every 30min (%02d:00-%02d:00), defense daily at 09:00, digest daily at 09:00.",
+        "Schedulers started — priority/workday/google every 10min, regular/greenhouse/general every 30min (%02d:00-%02d:00), defense daily at 09:00, digest daily at 08:00.",
         start_hour,
         end_hour,
     )
