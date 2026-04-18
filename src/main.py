@@ -41,7 +41,7 @@ def _process_jobs(jobs: list[dict], tier: str):
         if DRY_RUN:
             logger.info("[DRY RUN][%s] %s @ %s | %s | %s", tier, job['title'], job['company'], job['location'], job['url'])
         else:
-            send_alert(
+            sent = send_alert(
                 title=job["title"],
                 company=job["company"],
                 location=job["location"],
@@ -49,6 +49,8 @@ def _process_jobs(jobs: list[dict], tier: str):
                 source=job.get("source", ""),
                 description=job.get("description", ""),
             )
+            if not sent:
+                continue  # filtered out — don't save to DB either
 
         save_job(
             job_id=job_id,
@@ -138,9 +140,6 @@ def run_general():
 def run_digest():
     logger.info("[DIGEST] Sending daily digest...")
     jobs = get_recent_jobs(hours=24)
-    if not jobs:
-        logger.info("[DIGEST] No jobs in last 24h — skipping.")
-        return
     send_digest(jobs)
     logger.info("[DIGEST] Done — %d jobs in digest.", len(jobs))
 
