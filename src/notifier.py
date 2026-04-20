@@ -12,7 +12,8 @@ logger = logging.getLogger(__name__)
 _REQUIREMENT_KEYWORDS = (
     "degree", "student", "pursuing", "experience", "knowledge",
     "proficiency", "familiar", "background", "minimum", "required",
-    "must have", "ability", "skill", "year",
+    "must", "ability", "skill", "year", "gpa", "average", "fluent",
+    "understanding", "passion", "motivated", "advantage",
 )
 
 _GENERIC_TITLES = {"student", "intern"}
@@ -66,19 +67,44 @@ def _extract_bullets(description: str, max_bullets: int = 4) -> list[str]:
     if not description or len(description) < 50:
         return []
 
-    bullets = []
-    for line in description.splitlines():
+    # Split on newlines first; also split on ". " for dense single-line descriptions
+    raw_lines: list[str] = []
+    for segment in re.split(r"\r\n|\n|\r", description):
+        if ". " in segment and len(segment) > 200:
+            raw_lines.extend(re.split(r"\.\s+", segment))
+        else:
+            raw_lines.append(segment)
+
+    _STRIP_PREFIX = re.compile(r"^[\s•·\-–\*·]+|\s*\d+\.\s*")
+
+    def _clean(line: str) -> str:
+        return _STRIP_PREFIX.sub("", line).strip()
+
+    bullets: list[str] = []
+    fallback_lines: list[str] = []
+
+    for line in raw_lines:
         line = line.strip()
         if not line:
             continue
+
+        cleaned = _clean(line)
+        if not cleaned:
+            continue
+
+        # Collect non-empty lines for fallback
+        if len(fallback_lines) < 3 and 15 <= len(cleaned) <= 150:
+            fallback_lines.append(cleaned)
+
+        # Keyword match for requirements section
         line_lower = line.lower()
         if any(kw in line_lower for kw in _REQUIREMENT_KEYWORDS):
-            cleaned = re.sub(r"^[•·\-–\*]\s*", "", line).strip()
-            if 10 <= len(cleaned) <= 150:
+            if 15 <= len(cleaned) <= 150:
                 bullets.append(cleaned)
         if len(bullets) == max_bullets:
             break
-    return bullets
+
+    return bullets if bullets else fallback_lines
 
 
 def _infer_job_type(title: str, description: str) -> str:
@@ -133,8 +159,11 @@ def send_alert(
         token = os.environ["TELEGRAM_TOKEN"]
         chat_id = os.environ["TELEGRAM_CHAT_ID"]
 
+        logger.info("Description length: %d", len(description))
+        logger.info("Description preview: %s", description[:200])
         job_type = _infer_job_type(title, description)
         bullets = _extract_bullets(description)
+        logger.info("Bullets extracted: %s", bullets)
 
         lines = [
             "🚨 New Job Match!",
