@@ -121,6 +121,6 @@ greenhouse_companies:
   - name: "Taboola"
     id: "taboola"
 
-hours_active_start: 8
-hours_active_end: 22
+hours_active_start: 5
+hours_active_end: 19
 hours_old: 72

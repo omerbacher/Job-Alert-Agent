@@ -196,10 +196,10 @@ if __name__ == "__main__":
         name="regular_scan",
     )
 
-    # Defense: once daily at 09:00
+    # Defense: once daily at 09:00 Israel time (06:00 UTC)
     scheduler.add_job(
         run_defense,
-        trigger=CronTrigger(hour=9, minute=0),
+        trigger=CronTrigger(hour=6, minute=0),
         name="defense_scan",
     )
 
@@ -238,15 +238,15 @@ if __name__ == "__main__":
         name="amazon_scan",
     )
 
-    # Daily digest at 08:00
+    # Daily digest at 08:00 Israel time (05:00 UTC)
     scheduler.add_job(
         run_digest,
-        trigger=CronTrigger(hour=8, minute=0),
+        trigger=CronTrigger(hour=5, minute=0),
         name="daily_digest",
     )
 
     logger.info(
-        "Schedulers started — priority/workday/google/amazon every 10min, regular/greenhouse/smartrecruiters every 30min (%02d:00-%02d:00), defense daily at 09:00, digest daily at 08:00.",
+        "Schedulers started — scans %02d:00-%02d:00 UTC (08:00-21:00 IL), defense 06:00 UTC (09:00 IL), digest 05:00 UTC (08:00 IL).",
         start_hour,
         end_hour,
     )
