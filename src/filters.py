@@ -15,14 +15,26 @@ CS_TITLE_KEYWORDS = [
 
 INTERN_WORDS = ["intern", "internship", "student"]
 
+# For these companies an intern/student title alone is trusted — no CS domain
+# word required, because their intern programmes are almost always technical.
+PRIORITY_COMPANIES = {
+    "nvidia", "intel", "google", "microsoft", "amazon", "meta", "apple",
+    "mobileye", "qualcomm", "palo alto networks", "check point",
+}
 
-def passes_title_filter(title: str) -> bool:
-    """Title must contain a CS domain word AND an intern/student indicator."""
+
+def passes_title_filter(title: str, company: str = "") -> bool:
+    """Title must contain an intern/student word.
+
+    For priority companies that's sufficient.
+    For all other companies the title must also contain a CS domain word.
+    """
     t = title.lower()
-    return (
-        any(w in t for w in INTERN_WORDS)
-        and any(kw in t for kw in CS_TITLE_KEYWORDS)
-    )
+    if not any(w in t for w in INTERN_WORDS):
+        return False
+    if company.lower() in PRIORITY_COMPANIES:
+        return True
+    return any(kw in t for kw in CS_TITLE_KEYWORDS)
 
 
 def passes_cs_filter(description: str) -> bool:

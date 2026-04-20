@@ -60,7 +60,7 @@ def _scrape_for_companies(companies: list[str], locations: list[str], hours_old:
                 title_lower = title.lower()
 
                 # Title must pass CS relevance + intern/student check
-                if not passes_title_filter(title):
+                if not passes_title_filter(title, company):
                     continue
 
                 # Blocklist filter
@@ -151,7 +151,7 @@ def _scrape_no_company_filter(search_terms: list[str], locations: list[str], hou
 
             title_lower = title.lower()
 
-            if not passes_title_filter(title):
+            if not passes_title_filter(title, company):
                 continue
 
             if any(b in title_lower for b in BLOCKLIST):

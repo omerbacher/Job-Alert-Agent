@@ -64,7 +64,7 @@ def scrape_smartrecruiters(config: dict | None = None) -> list[dict]:
             title_lower = title.lower()
 
             # Title must pass CS relevance + intern/student check
-            if not passes_title_filter(title):
+            if not passes_title_filter(title, name):
                 continue
 
             # Blocklist filter

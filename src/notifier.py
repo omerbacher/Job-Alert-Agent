@@ -9,18 +9,20 @@ from telegram import Bot
 
 logger = logging.getLogger(__name__)
 
-_REQUIREMENT_PREFIXES = (
-    "•", "-", "student", "experience", "knowledge", "minimum",
-    "bachelor", "pursuing", "degree",
+_REQUIREMENT_KEYWORDS = (
+    "degree", "student", "pursuing", "experience", "knowledge",
+    "proficiency", "familiar", "background", "minimum", "required",
+    "must have", "ability", "skill", "year",
 )
 
 _GENERIC_TITLES = {"student", "intern"}
 
+# Unambiguous job-specific URL segments
 _VALID_JOB_PATH_SEGMENTS = (
-    "/job/", "/jobs/", "/position/", "/posting/", "/opening/",
+    "/job/", "/jobs/", "/position/", "/posting/", "/opening/", "/view/",
     "/requisition/", "/apply/", "/gh_jid=", "?gh_jid", "lever.co/",
     "greenhouse.io/", "smartrecruiters.com/", "myworkdayjobs.com/",
-    "ashbyhq.com/", "careers/job", "careers/",
+    "ashbyhq.com/", "amazon.jobs/en/jobs/",
 )
 
 
@@ -28,21 +30,27 @@ _VALID_JOB_PATH_SEGMENTS = (
 # Validation helpers
 # ---------------------------------------------------------------------------
 
+def _fix_url(url: str) -> str:
+    """Attempt to normalise common malformed URLs before validation."""
+    if url.startswith("//"):
+        return "https:" + url
+    return url
+
+
 def _is_valid_url(url: str) -> bool:
-    if not url or not url.startswith(("http://", "https://")):
+    if not url:
         return False
-    # Must have a path beyond a bare homepage
-    try:
-        from urllib.parse import urlparse
-        parsed = urlparse(url)
-        path = parsed.path.rstrip("/")
-        query = parsed.query
-        if not path and not query:
-            return False  # bare domain
-        full = url.lower()
-        return any(seg in full for seg in _VALID_JOB_PATH_SEGMENTS)
-    except Exception:
+    url = _fix_url(url)
+    if not url.startswith(("http://", "https://")):
         return False
+    full = url.lower()
+    # /careers/ is only accepted when something meaningful follows it
+    if "/careers/" in full:
+        idx = full.index("/careers/")
+        remainder = full[idx + len("/careers/"):].lstrip("/")
+        if len(remainder) > 2:
+            return True
+    return any(seg in full for seg in _VALID_JOB_PATH_SEGMENTS)
 
 
 def _is_valid_title(title: str) -> bool:
@@ -64,8 +72,7 @@ def _extract_bullets(description: str, max_bullets: int = 4) -> list[str]:
         if not line:
             continue
         line_lower = line.lower()
-        if any(line_lower.startswith(p) for p in _REQUIREMENT_PREFIXES):
-            # Clean leading bullet/dash chars
+        if any(kw in line_lower for kw in _REQUIREMENT_KEYWORDS):
             cleaned = re.sub(r"^[•·\-–\*]\s*", "", line).strip()
             if 10 <= len(cleaned) <= 150:
                 bullets.append(cleaned)
@@ -117,6 +124,7 @@ def send_alert(
     if not _is_valid_title(title):
         logger.warning("Skipping alert — invalid title: %r", title)
         return False
+    url = _fix_url(url)
     if not _is_valid_url(url):
         logger.warning("Skipping alert — invalid URL: %r (title=%r)", url, title)
         return False
