@@ -2,7 +2,7 @@ import hashlib
 import logging
 import yaml
 from jobspy import scrape_jobs
-from filters import passes_title_filter, is_cs_relevant
+from filters import passes_title_filter, is_cs_relevant, passes_location_filter
 
 logger = logging.getLogger(__name__)
 
@@ -77,8 +77,7 @@ def _scrape_for_companies(companies: list[str], locations: list[str], hours_old:
                     continue
 
                 # Location filter
-                location_lower = location_val.lower()
-                if not any(loc.lower() in location_lower for loc in locations):
+                if not passes_location_filter(location_val):
                     continue
 
                 job_id = _make_id(title, company)
@@ -166,8 +165,7 @@ def _scrape_no_company_filter(search_terms: list[str], locations: list[str], hou
             if company.lower() not in allowed_lower:
                 continue
 
-            location_lower = location_val.lower()
-            if not any(loc.lower() in location_lower for loc in locations):
+            if not passes_location_filter(location_val):
                 continue
 
             job_id = _make_id(title, company)

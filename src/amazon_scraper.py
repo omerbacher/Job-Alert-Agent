@@ -2,7 +2,7 @@ import hashlib
 import logging
 import requests
 import yaml
-from filters import passes_title_filter, is_cs_relevant
+from filters import passes_title_filter, is_cs_relevant, passes_location_filter
 
 logger = logging.getLogger(__name__)
 
@@ -72,6 +72,10 @@ def scrape_amazon(config: dict | None = None) -> list[dict]:
 
             # Stage 2: CS relevance
             if not is_cs_relevant(title, description):
+                continue
+
+            # Location filter
+            if not passes_location_filter(location):
                 continue
 
             job_url = BASE_URL + job_path

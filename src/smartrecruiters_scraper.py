@@ -2,7 +2,7 @@ import hashlib
 import logging
 import requests
 import yaml
-from filters import passes_title_filter, is_cs_relevant
+from filters import passes_title_filter, is_cs_relevant, passes_location_filter
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +47,6 @@ def scrape_smartrecruiters(config: dict | None = None) -> list[dict]:
     if config is None:
         config = _load_config()
 
-    global_locations: list[str] = config["locations"]
     sr_companies: list[dict] = config.get("smartrecruiters_companies", [])
 
     seen_ids: set[str] = set()
@@ -86,8 +85,7 @@ def scrape_smartrecruiters(config: dict | None = None) -> list[dict]:
                 continue
 
             # Location filter (before expensive description fetch)
-            location_lower = full_location.lower()
-            if not any(loc.lower() in location_lower for loc in global_locations):
+            if not passes_location_filter(full_location):
                 continue
 
             # Fetch full description for Stage 2

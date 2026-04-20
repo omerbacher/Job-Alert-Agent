@@ -2,7 +2,7 @@ import hashlib
 import logging
 import requests
 import yaml
-from filters import passes_title_filter, is_cs_relevant
+from filters import passes_title_filter, is_cs_relevant, passes_location_filter
 
 logger = logging.getLogger(__name__)
 
@@ -25,10 +25,6 @@ def _make_id(title: str, company: str) -> str:
     return hashlib.md5(raw.encode()).hexdigest()
 
 
-def _location_allowed(locations_text: str, allowed_locations: list[str]) -> bool:
-    loc_lower = locations_text.lower()
-    return any(loc.lower() in loc_lower for loc in allowed_locations)
-
 
 def _extract_description(posting: dict) -> str:
     """Pull whatever description text the Workday listing API returns."""
@@ -47,7 +43,6 @@ def scrape_workday(config: dict | None = None) -> list[dict]:
     if config is None:
         config = _load_config()
 
-    global_locations: list[str] = config["locations"]
     workday_companies: list[dict] = config.get("workday_companies", [])
 
     seen_ids: set[str] = set()
@@ -57,7 +52,6 @@ def scrape_workday(config: dict | None = None) -> list[dict]:
         name: str     = company_cfg["name"]
         url: str      = company_cfg["url"]
         base_url: str = company_cfg["base_url"]
-        allowed_locations: list[str] = company_cfg.get("special_locations") or global_locations
 
         try:
             response = requests.post(
@@ -91,7 +85,7 @@ def scrape_workday(config: dict | None = None) -> list[dict]:
                 continue
 
             # Location filter
-            if not _location_allowed(locations_text, allowed_locations):
+            if not passes_location_filter(locations_text):
                 continue
 
             # Stage 2: CS relevance (title fallback when description absent)

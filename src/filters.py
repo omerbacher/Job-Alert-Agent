@@ -23,6 +23,38 @@ NON_CS_SIGNALS = [
 ]
 
 
+ALLOWED_LOCATIONS = [
+    "tel aviv", "herzliya", "raanana", "rehovot", "petah tikva",
+    "rishon", "holon", "kfar saba", "netanya", "israel",
+    "center district", "central district", "merkaz",
+]
+
+BLOCKED_LOCATIONS = [
+    "haifa", "beer sheva", "beersheba", "yokneam", "yoqneam",
+    "nazareth", "jerusalem", "eilat", "spain", "india", "usa",
+    "united states", "uk", "london", "germany", "france",
+]
+
+
+def passes_location_filter(location: str) -> bool:
+    """Return True if the location is within the allowed Central Israel area.
+
+    - Blocked location → reject immediately
+    - Allowed location → accept
+    - Empty or bare "israel" → accept (benefit of the doubt)
+    - Specific location not in allowed list → reject
+    """
+    if not location or not location.strip():
+        return True  # no location info — benefit of the doubt
+    loc = location.lower().strip()
+    if any(b in loc for b in BLOCKED_LOCATIONS):
+        return False
+    if any(a in loc for a in ALLOWED_LOCATIONS):
+        return True
+    # Specific location provided but not in allowed list
+    return False
+
+
 def passes_title_filter(title: str) -> bool:
     """Stage 1: title must contain intern / internship / student. No exceptions."""
     t = title.lower()

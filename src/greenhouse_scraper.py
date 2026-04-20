@@ -2,7 +2,7 @@ import hashlib
 import logging
 import requests
 import yaml
-from filters import passes_title_filter, is_cs_relevant
+from filters import passes_title_filter, is_cs_relevant, passes_location_filter
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +28,6 @@ def scrape_greenhouse(config: dict | None = None) -> list[dict]:
     if config is None:
         config = _load_config()
 
-    global_locations: list[str] = config["locations"]
     greenhouse_companies: list[dict] = config.get("greenhouse_companies", [])
 
     seen_ids: set[str] = set()
@@ -69,9 +68,8 @@ def scrape_greenhouse(config: dict | None = None) -> list[dict]:
             if not is_cs_relevant(title, description):
                 continue
 
-            # Location filter: must contain at least one configured location
-            location_lower = location.lower()
-            if not any(loc.lower() in location_lower for loc in global_locations):
+            # Location filter
+            if not passes_location_filter(location):
                 continue
 
             job_id = _make_id(title, name)
