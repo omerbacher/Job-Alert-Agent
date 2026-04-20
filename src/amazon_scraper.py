@@ -2,11 +2,10 @@ import hashlib
 import logging
 import requests
 import yaml
-from filters import passes_cs_filter, passes_title_filter, passes_description_filter
+from filters import passes_title_filter, is_cs_relevant
 
 logger = logging.getLogger(__name__)
 
-REQUIRED_TITLE_WORDS = ["intern", "internship", "student"]
 BLOCKLIST = [
     "economics", "marketing", "finance", "accounting", "hr",
     "human resources", "legal", "sales", "supply chain", "logistics",
@@ -63,20 +62,16 @@ def scrape_amazon(config: dict | None = None) -> list[dict]:
 
             title_lower = title.lower()
 
-            # Title must pass CS relevance + intern/student check
-            if not passes_title_filter(title, "Amazon"):
+            # Stage 1: title must contain intern/internship/student
+            if not passes_title_filter(title):
                 continue
 
-            # Blocklist filter
+            # Blocklist
             if any(b in title_lower for b in BLOCKLIST):
                 continue
 
-            # CS description filter
-            if not passes_cs_filter(description):
-                continue
-
-            # Description-based CS relevance filter
-            if not passes_description_filter(title, description):
+            # Stage 2: CS relevance
+            if not is_cs_relevant(title, description):
                 continue
 
             job_url = BASE_URL + job_path
@@ -92,6 +87,7 @@ def scrape_amazon(config: dict | None = None) -> list[dict]:
                 "company": "Amazon",
                 "location": location,
                 "url": job_url,
+                "description": description,
             })
 
     logger.info("Amazon scrape total: %d unique jobs after filters", len(jobs))

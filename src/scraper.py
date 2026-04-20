@@ -2,13 +2,12 @@ import hashlib
 import logging
 import yaml
 from jobspy import scrape_jobs
-from filters import passes_cs_filter, passes_title_filter, passes_description_filter
+from filters import passes_title_filter, is_cs_relevant
 
 logger = logging.getLogger(__name__)
 
 SEARCH_TERMS = ["intern", "internship", "student"]
 GENERAL_SEARCH_TERMS = ["intern Israel", "student Israel", "internship Israel"]
-REQUIRED_TITLE_WORDS = ["intern", "internship", "student"]
 BLOCKLIST = [
     "economics", "marketing", "finance", "accounting", "hr",
     "human resources", "legal", "sales", "supply chain", "logistics",
@@ -43,6 +42,7 @@ def _scrape_for_companies(companies: list[str], locations: list[str], hours_old:
                     results_wanted=MAX_RESULTS,
                     hours_old=hours_old,
                     country_indeed="Israel",
+                    linkedin_fetch_description=True,
                 )
             except Exception as exc:
                 logger.warning("Scrape failed for term=%r location=%r: %s", term, location, exc)
@@ -52,35 +52,31 @@ def _scrape_for_companies(companies: list[str], locations: list[str], hours_old:
                 continue
 
             for _, row in df.iterrows():
-                title: str = str(row.get("title", "") or "")
-                company: str = str(row.get("company", "") or "")
+                title: str       = str(row.get("title", "") or "")
+                company: str     = str(row.get("company", "") or "")
                 location_val: str = str(row.get("location", "") or "")
-                url: str = str(row.get("job_url", "") or "")
+                url: str         = str(row.get("job_url", "") or "")
+                description: str = str(row.get("description", "") or "")
 
                 title_lower = title.lower()
 
-                # Title must pass CS relevance + intern/student check
-                if not passes_title_filter(title, company):
+                # Stage 1: title must contain intern/internship/student
+                if not passes_title_filter(title):
                     continue
 
-                # Blocklist filter
+                # Blocklist
                 if any(b in title_lower for b in BLOCKLIST):
                     continue
 
-                # CS description filter
-                description: str = str(row.get("description", "") or "")
-                if not passes_cs_filter(description):
+                # Stage 2: CS relevance from description (+ title fallback)
+                if not is_cs_relevant(title, description):
                     continue
 
-                # Description-based CS relevance filter
-                if not passes_description_filter(title, description):
-                    continue
-
-                # Strict company filter: must be in this tier's list
+                # Strict company filter
                 if company.lower() not in companies_lower:
                     continue
 
-                # Location filter: must contain at least one configured location
+                # Location filter
                 location_lower = location_val.lower()
                 if not any(loc.lower() in location_lower for loc in locations):
                     continue
@@ -96,6 +92,7 @@ def _scrape_for_companies(companies: list[str], locations: list[str], hours_old:
                     "company": company,
                     "location": location_val,
                     "url": url,
+                    "description": description,
                 })
 
     return jobs
@@ -139,6 +136,7 @@ def _scrape_no_company_filter(search_terms: list[str], locations: list[str], hou
                 results_wanted=MAX_RESULTS,
                 hours_old=hours_old,
                 country_indeed="Israel",
+                linkedin_fetch_description=True,
             )
         except Exception as exc:
             logger.warning("General scrape failed for term=%r: %s", term, exc)
@@ -148,28 +146,23 @@ def _scrape_no_company_filter(search_terms: list[str], locations: list[str], hou
             continue
 
         for _, row in df.iterrows():
-            title: str = str(row.get("title", "") or "")
-            company: str = str(row.get("company", "") or "")
+            title: str       = str(row.get("title", "") or "")
+            company: str     = str(row.get("company", "") or "")
             location_val: str = str(row.get("location", "") or "")
-            url: str = str(row.get("job_url", "") or "")
+            url: str         = str(row.get("job_url", "") or "")
+            description: str = str(row.get("description", "") or "")
 
             title_lower = title.lower()
 
-            if not passes_title_filter(title, company):
+            if not passes_title_filter(title):
                 continue
 
             if any(b in title_lower for b in BLOCKLIST):
                 continue
 
-            description: str = str(row.get("description", "") or "")
-            if not passes_cs_filter(description):
+            if not is_cs_relevant(title, description):
                 continue
 
-            # Description-based CS relevance filter
-            if not passes_description_filter(title, description):
-                continue
-
-            # Strict company filter: must be in allowed list
             if company.lower() not in allowed_lower:
                 continue
 
@@ -188,6 +181,7 @@ def _scrape_no_company_filter(search_terms: list[str], locations: list[str], hou
                 "company": company,
                 "location": location_val,
                 "url": url,
+                "description": description,
             })
 
     return jobs

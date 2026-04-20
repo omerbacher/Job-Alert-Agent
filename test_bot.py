@@ -27,7 +27,7 @@ from smartrecruiters_scraper import scrape_smartrecruiters
 from greenhouse_scraper import scrape_greenhouse
 from amazon_scraper import scrape_amazon
 from notifier import _is_valid_url, _fix_url, send_alert
-from filters import passes_title_filter, passes_cs_filter
+from filters import passes_title_filter, is_cs_relevant
 
 load_dotenv()
 
@@ -64,14 +64,14 @@ def load_config() -> dict:
 def _check_job(job: dict) -> dict:
     """Return a dict of per-field validation results for a job."""
     url = _fix_url(job.get("url", ""))
-    url_valid = _is_valid_url(url)
-    title_ok  = passes_title_filter(job.get("title", ""), job.get("company", ""))
-    desc_ok   = passes_cs_filter(job.get("description", ""))
+    url_valid  = _is_valid_url(url)
+    title_ok   = passes_title_filter(job.get("title", ""))
+    cs_ok      = is_cs_relevant(job.get("title", ""), job.get("description", ""))
     return {
         "url_valid": url_valid,
         "title_ok":  title_ok,
-        "desc_ok":   desc_ok,
-        "all_pass":  url_valid and title_ok and desc_ok,
+        "cs_ok":     cs_ok,
+        "all_pass":  url_valid and title_ok and cs_ok,
     }
 
 
@@ -113,7 +113,7 @@ def print_job_details(jobs: list[dict], scraper_name: str) -> None:
         print(f"    [{all_ok}] {job['title']} @ {job['company']}")
         print(f"           Location : {job.get('location', '—')}")
         print(f"           URL      : {url_display}")
-        print(f"           url_valid={checks['url_valid']}  title_ok={checks['title_ok']}  desc_ok={checks['desc_ok']}")
+        print(f"           url_valid={checks['url_valid']}  title_ok={checks['title_ok']}  cs_ok={checks['cs_ok']}")
 
 
 async def send_summary(total: int) -> None:

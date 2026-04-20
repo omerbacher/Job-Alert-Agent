@@ -2,11 +2,10 @@ import hashlib
 import logging
 import requests
 import yaml
-from filters import passes_title_filter, passes_description_filter
+from filters import passes_title_filter, is_cs_relevant
 
 logger = logging.getLogger(__name__)
 
-REQUIRED_TITLE_WORDS = ["intern", "internship", "student"]
 BLOCKLIST = [
     "economics", "marketing", "finance", "accounting", "hr",
     "human resources", "legal", "sales", "supply chain", "logistics",
@@ -25,6 +24,25 @@ def _make_id(title: str, company: str) -> str:
     return hashlib.md5(raw.encode()).hexdigest()
 
 
+def _fetch_description(identifier: str, posting_id: str) -> str:
+    """Fetch full job description from SmartRecruiters detail endpoint."""
+    try:
+        url = f"https://api.smartrecruiters.com/v1/companies/{identifier}/postings/{posting_id}"
+        resp = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=20)
+        resp.raise_for_status()
+        data = resp.json()
+        sections = (data.get("jobAd") or {}).get("sections") or {}
+        parts = []
+        for key in ("jobDescription", "qualifications", "companyDescription", "additionalInformation"):
+            text = (sections.get(key) or {}).get("text", "")
+            if text:
+                parts.append(text)
+        return "\n".join(parts)
+    except Exception as exc:
+        logger.debug("Could not fetch SR description for %s/%s: %s", identifier, posting_id, exc)
+        return ""
+
+
 def scrape_smartrecruiters(config: dict | None = None) -> list[dict]:
     if config is None:
         config = _load_config()
@@ -36,16 +54,12 @@ def scrape_smartrecruiters(config: dict | None = None) -> list[dict]:
     jobs: list[dict] = []
 
     for company_cfg in sr_companies:
-        name: str = company_cfg["name"]
+        name: str       = company_cfg["name"]
         identifier: str = company_cfg["id"]
         url = f"https://api.smartrecruiters.com/v1/companies/{identifier}/postings?limit=100"
 
         try:
-            response = requests.get(
-                url,
-                headers={"User-Agent": "Mozilla/5.0"},
-                timeout=30,
-            )
+            response = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=30)
             response.raise_for_status()
         except Exception as exc:
             logger.warning("SmartRecruiters scrape failed for %s: %s", name, exc)
@@ -56,32 +70,35 @@ def scrape_smartrecruiters(config: dict | None = None) -> list[dict]:
         logger.info("SmartRecruiters [%s]: %d total postings", name, data.get("totalFound", 0))
 
         for posting in postings:
-            title: str = posting.get("name", "") or ""
-            location_obj = posting.get("location") or {}
+            title: str       = posting.get("name", "") or ""
+            location_obj     = posting.get("location") or {}
             full_location: str = location_obj.get("fullLocation", "") or ""
-            job_id_sr: str = str(posting.get("id", ""))
+            job_id_sr: str   = str(posting.get("id", ""))
 
             title_lower = title.lower()
 
-            # Title must pass CS relevance + intern/student check
-            if not passes_title_filter(title, name):
+            # Stage 1: title must contain intern/internship/student
+            if not passes_title_filter(title):
                 continue
 
-            # Blocklist filter
+            # Blocklist
             if any(b in title_lower for b in BLOCKLIST):
                 continue
 
-            # Description filter (SmartRecruiters listing API returns no description)
-            if not passes_description_filter(title, ""):
-                continue
-
-            # Location filter
+            # Location filter (before expensive description fetch)
             location_lower = full_location.lower()
             if not any(loc.lower() in location_lower for loc in global_locations):
                 continue
 
+            # Fetch full description for Stage 2
+            description = _fetch_description(identifier, job_id_sr)
+
+            # Stage 2: CS relevance
+            if not is_cs_relevant(title, description):
+                continue
+
             job_url = f"https://jobs.smartrecruiters.com/{identifier}/{job_id_sr}"
-            job_id = _make_id(title, name)
+            job_id  = _make_id(title, name)
 
             if job_id in seen_ids:
                 continue
@@ -93,6 +110,7 @@ def scrape_smartrecruiters(config: dict | None = None) -> list[dict]:
                 "company": name,
                 "location": full_location,
                 "url": job_url,
+                "description": description,
             })
 
     logger.info("SmartRecruiters scrape total: %d unique jobs after filters", len(jobs))

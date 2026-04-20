@@ -2,12 +2,11 @@ import hashlib
 import logging
 import requests
 import yaml
-from filters import passes_title_filter, passes_description_filter
+from filters import passes_title_filter, is_cs_relevant
 
 logger = logging.getLogger(__name__)
 
 SEARCH_TEXT = "intern student"
-REQUIRED_TITLE_WORDS = ["intern", "internship", "student"]
 BLOCKLIST = [
     "economics", "marketing", "finance", "accounting", "hr",
     "human resources", "legal", "sales", "supply chain", "logistics",
@@ -31,6 +30,19 @@ def _location_allowed(locations_text: str, allowed_locations: list[str]) -> bool
     return any(loc.lower() in loc_lower for loc in allowed_locations)
 
 
+def _extract_description(posting: dict) -> str:
+    """Pull whatever description text the Workday listing API returns."""
+    parts = []
+    for field in ("jobDescription", "description", "briefDescription",
+                  "shortDescription", "jobSummary"):
+        val = posting.get(field)
+        if isinstance(val, dict):
+            val = val.get("descriptor") or val.get("text") or ""
+        if val and isinstance(val, str):
+            parts.append(val.strip())
+    return "\n".join(parts)
+
+
 def scrape_workday(config: dict | None = None) -> list[dict]:
     if config is None:
         config = _load_config()
@@ -42,8 +54,8 @@ def scrape_workday(config: dict | None = None) -> list[dict]:
     jobs: list[dict] = []
 
     for company_cfg in workday_companies:
-        name: str = company_cfg["name"]
-        url: str = company_cfg["url"]
+        name: str     = company_cfg["name"]
+        url: str      = company_cfg["url"]
         base_url: str = company_cfg["base_url"]
         allowed_locations: list[str] = company_cfg.get("special_locations") or global_locations
 
@@ -63,33 +75,33 @@ def scrape_workday(config: dict | None = None) -> list[dict]:
         postings = data.get("jobPostings", [])
 
         for posting in postings:
-            title: str = posting.get("title", "") or ""
+            title: str         = posting.get("title", "") or ""
             external_path: str = posting.get("externalPath", "") or ""
             locations_text: str = posting.get("locationsText", "") or ""
+            description: str   = _extract_description(posting)
 
             title_lower = title.lower()
 
-            # Title must pass CS relevance + intern/student check
-            if not passes_title_filter(title, name):
+            # Stage 1: title must contain intern/internship/student
+            if not passes_title_filter(title):
                 continue
 
-            # Blocklist filter
+            # Blocklist
             if any(b in title_lower for b in BLOCKLIST):
-                continue
-
-            # Description filter (Workday listing API returns no description —
-            # empty string passes through automatically)
-            if not passes_description_filter(title, ""):
                 continue
 
             # Location filter
             if not _location_allowed(locations_text, allowed_locations):
                 continue
 
+            # Stage 2: CS relevance (title fallback when description absent)
+            if not is_cs_relevant(title, description):
+                continue
+
             # Build job URL: base_url/en-US/{site_name}{externalPath} verbatim
             site_name = url.split("/")[-2]
-            job_url = f"{base_url}/en-US/{site_name}{external_path}"
-            job_id = _make_id(title, name)
+            job_url   = f"{base_url}/en-US/{site_name}{external_path}"
+            job_id    = _make_id(title, name)
 
             if job_id in seen_ids:
                 continue
@@ -102,6 +114,7 @@ def scrape_workday(config: dict | None = None) -> list[dict]:
                 "company": name,
                 "location": locations_text,
                 "url": job_url,
+                "description": description,
             })
 
         logger.info("Workday [%s]: %d jobs after filters", name, sum(1 for j in jobs if j["company"] == name))
