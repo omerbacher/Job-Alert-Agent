@@ -8,6 +8,10 @@ import asyncio
 import os
 import sys
 
+# Force UTF-8 output on Windows terminals that default to a legacy codepage
+if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
 # Scrapers import from src/
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 
