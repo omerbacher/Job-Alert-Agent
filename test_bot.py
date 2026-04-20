@@ -4,6 +4,7 @@ Runs one scan of each scraper, prints results, sends a single Telegram summary.
 Does NOT write to the DB or send individual job alerts.
 """
 
+import argparse
 import asyncio
 import os
 import sys
@@ -24,7 +25,7 @@ from workday_scraper import scrape_workday
 from smartrecruiters_scraper import scrape_smartrecruiters
 from greenhouse_scraper import scrape_greenhouse
 from amazon_scraper import scrape_amazon
-from notifier import _is_valid_url, _fix_url
+from notifier import _is_valid_url, _fix_url, send_alert
 from filters import passes_title_filter, passes_cs_filter
 
 load_dotenv()
@@ -130,6 +131,10 @@ async def send_summary(total: int) -> None:
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--demo", action="store_true", help="Send the first found job as a real Telegram alert")
+    args = parser.parse_args()
+
     config = load_config()
 
     scrapers = [
@@ -169,6 +174,25 @@ def main() -> None:
 
     total = sum(len(j) for j in all_results.values())
     print(f"\n=== Total jobs found: {total} ===\n")
+
+    # --demo: send the first found job as a real alert
+    if args.demo:
+        demo_job = next(
+            (j for jobs in all_results.values() for j in jobs),
+            None,
+        )
+        if demo_job:
+            print(f"  [DEMO] Sending real alert for: {demo_job['title']} @ {demo_job['company']}")
+            send_alert(
+                title=demo_job["title"],
+                company=demo_job["company"],
+                location=demo_job.get("location", ""),
+                url=demo_job.get("url", ""),
+                source=demo_job.get("source", "Demo"),
+                description=demo_job.get("description", ""),
+            )
+        else:
+            print("  [DEMO] No jobs found to demo.")
 
     # Single Telegram summary
     asyncio.run(send_summary(total))
