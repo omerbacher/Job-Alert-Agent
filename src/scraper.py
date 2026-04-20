@@ -2,7 +2,7 @@ import hashlib
 import logging
 import yaml
 from jobspy import scrape_jobs
-from filters import passes_cs_filter
+from filters import passes_cs_filter, passes_title_filter
 
 logger = logging.getLogger(__name__)
 
@@ -59,8 +59,8 @@ def _scrape_for_companies(companies: list[str], locations: list[str], hours_old:
 
                 title_lower = title.lower()
 
-                # Title must contain one of the required words
-                if not any(w in title_lower for w in REQUIRED_TITLE_WORDS):
+                # Title must pass CS relevance + intern/student check
+                if not passes_title_filter(title):
                     continue
 
                 # Blocklist filter
@@ -151,7 +151,7 @@ def _scrape_no_company_filter(search_terms: list[str], locations: list[str], hou
 
             title_lower = title.lower()
 
-            if not any(w in title_lower for w in REQUIRED_TITLE_WORDS):
+            if not passes_title_filter(title):
                 continue
 
             if any(b in title_lower for b in BLOCKLIST):

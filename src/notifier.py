@@ -167,7 +167,7 @@ def send_digest(jobs: list[dict]):
         date_str = datetime.now().strftime("%d/%m/%Y")
 
         if not jobs:
-            text = f"📋 Daily Digest — {date_str}\nNo new CS student roles found in the last 24 hours."
+            text = f"📋 Daily Digest — {date_str}\nNo new CS student roles found today. Bot is running normally. ✅"
         else:
             by_company: dict[str, list[dict]] = defaultdict(list)
             for job in jobs:

@@ -2,6 +2,7 @@ import hashlib
 import logging
 import requests
 import yaml
+from filters import passes_title_filter
 
 logger = logging.getLogger(__name__)
 
@@ -68,8 +69,8 @@ def scrape_workday(config: dict | None = None) -> list[dict]:
 
             title_lower = title.lower()
 
-            # Title must contain one of the required words
-            if not any(w in title_lower for w in REQUIRED_TITLE_WORDS):
+            # Title must pass CS relevance + intern/student check
+            if not passes_title_filter(title):
                 continue
 
             # Blocklist filter
