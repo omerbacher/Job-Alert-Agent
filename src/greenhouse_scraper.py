@@ -2,7 +2,7 @@ import hashlib
 import logging
 import requests
 import yaml
-from filters import passes_cs_filter, passes_title_filter
+from filters import passes_cs_filter, passes_title_filter, passes_description_filter
 
 logger = logging.getLogger(__name__)
 
@@ -68,6 +68,10 @@ def scrape_greenhouse(config: dict | None = None) -> list[dict]:
 
             # CS description filter
             if not passes_cs_filter(description):
+                continue
+
+            # Description-based CS relevance filter
+            if not passes_description_filter(title, description):
                 continue
 
             # Location filter: must contain at least one configured location

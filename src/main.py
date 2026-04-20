@@ -1,5 +1,6 @@
 import logging
 import yaml
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dotenv import load_dotenv
 from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -137,6 +138,28 @@ def run_general():
     _process_jobs(jobs, "GENERAL")
 
 
+def run_all_scans():
+    """Run all scrapers concurrently at startup."""
+    scan_fns = {
+        "priority":       run_priority,
+        "regular":        run_regular,
+        "defense":        run_defense,
+        "workday":        run_workday,
+        "greenhouse":     run_greenhouse,
+        "google":         run_google,
+        "smartrecruiters": run_smartrecruiters,
+        "amazon":         run_amazon,
+    }
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        futures = {executor.submit(fn): name for name, fn in scan_fns.items()}
+        for future in as_completed(futures):
+            name = futures[future]
+            try:
+                future.result()
+            except Exception as exc:
+                logger.error("[%s] scan failed: %s", name, exc)
+
+
 def run_digest():
     logger.info("[DIGEST] Sending daily digest...")
     jobs = get_recent_jobs(hours=24)
@@ -154,21 +177,8 @@ if __name__ == "__main__":
     if DRY_RUN:
         logger.info("DRY RUN mode enabled — no Telegram alerts will be sent.")
 
-    # Run all tiers immediately on startup — errors are logged but never crash the process
-    for name, fn in [
-        ("priority", run_priority),
-        ("regular", run_regular),
-        ("defense", run_defense),
-        ("workday", run_workday),
-        ("greenhouse", run_greenhouse),
-        ("google", run_google),
-        ("smartrecruiters", run_smartrecruiters),
-        ("amazon", run_amazon),
-    ]:
-        try:
-            fn()
-        except Exception as exc:
-            logger.error("Startup scan %r failed: %s", name, exc)
+    # Run all scrapers concurrently on startup
+    run_all_scans()
 
     scheduler = BlockingScheduler()
 

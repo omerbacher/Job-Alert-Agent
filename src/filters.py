@@ -37,6 +37,37 @@ def passes_title_filter(title: str, company: str = "") -> bool:
     return any(kw in t for kw in CS_TITLE_KEYWORDS)
 
 
+NON_CS_SIGNALS = [
+    "physics", "optics", "laser", "mechanical engineering", "chemistry",
+    "biology", "electrical engineering", "photonics", "rf ",
+    "antenna", "radar", "materials science",
+]
+
+CS_DESCRIPTION_SIGNALS = [
+    "python", "software", "algorithm", "computer science",
+    "machine learning", "backend", "frontend", "cloud", "api",
+    "data structures", "programming", "coding", "c++", "java",
+    "computer engineering", "information systems",
+]
+
+
+def passes_description_filter(title: str, description: str) -> bool:
+    """Reject non-CS roles based on description content.
+
+    Short/absent descriptions get benefit of the doubt.
+    Explicit non-CS signals (optics, radar, etc.) reject.
+    Explicit CS signals accept. Neither → accept.
+    """
+    if not description or len(description) < 100:
+        return True
+    desc_lower = description.lower()
+    if any(sig in desc_lower for sig in NON_CS_SIGNALS):
+        return False
+    if any(sig in desc_lower for sig in CS_DESCRIPTION_SIGNALS):
+        return True
+    return True
+
+
 def passes_cs_filter(description: str) -> bool:
     """Return True if the job should be kept.
 

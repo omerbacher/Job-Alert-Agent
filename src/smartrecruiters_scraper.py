@@ -2,7 +2,7 @@ import hashlib
 import logging
 import requests
 import yaml
-from filters import passes_title_filter
+from filters import passes_title_filter, passes_description_filter
 
 logger = logging.getLogger(__name__)
 
@@ -71,8 +71,9 @@ def scrape_smartrecruiters(config: dict | None = None) -> list[dict]:
             if any(b in title_lower for b in BLOCKLIST):
                 continue
 
-            # CS description filter: SmartRecruiters listing API returns no description,
-            # so all jobs pass through (empty string → passes_cs_filter = True)
+            # Description filter (SmartRecruiters listing API returns no description)
+            if not passes_description_filter(title, ""):
+                continue
 
             # Location filter
             location_lower = full_location.lower()

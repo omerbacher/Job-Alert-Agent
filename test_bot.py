@@ -8,6 +8,7 @@ import argparse
 import asyncio
 import os
 import sys
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Force UTF-8 output on Windows terminals that default to a legacy codepage
 if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
@@ -145,11 +146,14 @@ def main() -> None:
         ("Amazon",            scrape_amazon),
     ]
 
-    print("\n=== test_bot.py — scanning all scrapers (no DB writes, no alerts) ===\n")
+    print("\n=== test_bot.py — scanning all scrapers in parallel (no DB writes, no alerts) ===\n")
 
-    all_results: dict[str, list[dict]] = {}
-    for name, fn in scrapers:
-        all_results[name] = run_scraper(name, fn, config)
+    all_results: dict[str, list[dict]] = {name: [] for name, _ in scrapers}
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        futures = {executor.submit(run_scraper, name, fn, config): name for name, fn in scrapers}
+        for future in as_completed(futures):
+            name = futures[future]
+            all_results[name] = future.result()
 
     # Build summary table
     table_rows = []

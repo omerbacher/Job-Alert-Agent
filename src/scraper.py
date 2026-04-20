@@ -2,7 +2,7 @@ import hashlib
 import logging
 import yaml
 from jobspy import scrape_jobs
-from filters import passes_cs_filter, passes_title_filter
+from filters import passes_cs_filter, passes_title_filter, passes_description_filter
 
 logger = logging.getLogger(__name__)
 
@@ -70,6 +70,10 @@ def _scrape_for_companies(companies: list[str], locations: list[str], hours_old:
                 # CS description filter
                 description: str = str(row.get("description", "") or "")
                 if not passes_cs_filter(description):
+                    continue
+
+                # Description-based CS relevance filter
+                if not passes_description_filter(title, description):
                     continue
 
                 # Strict company filter: must be in this tier's list
@@ -159,6 +163,10 @@ def _scrape_no_company_filter(search_terms: list[str], locations: list[str], hou
 
             description: str = str(row.get("description", "") or "")
             if not passes_cs_filter(description):
+                continue
+
+            # Description-based CS relevance filter
+            if not passes_description_filter(title, description):
                 continue
 
             # Strict company filter: must be in allowed list

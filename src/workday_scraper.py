@@ -2,7 +2,7 @@ import hashlib
 import logging
 import requests
 import yaml
-from filters import passes_title_filter
+from filters import passes_title_filter, passes_description_filter
 
 logger = logging.getLogger(__name__)
 
@@ -77,13 +77,16 @@ def scrape_workday(config: dict | None = None) -> list[dict]:
             if any(b in title_lower for b in BLOCKLIST):
                 continue
 
-            # CS description filter: Workday listing API returns no description,
-            # so all jobs pass through (empty string → passes_cs_filter = True)
+            # Description filter (Workday listing API returns no description —
+            # empty string passes through automatically)
+            if not passes_description_filter(title, ""):
+                continue
 
             # Location filter
             if not _location_allowed(locations_text, allowed_locations):
                 continue
 
+            # Build job URL: base_url/en-US/{site_name}{externalPath} verbatim
             site_name = url.split("/")[-2]
             job_url = f"{base_url}/en-US/{site_name}{external_path}"
             job_id = _make_id(title, name)
@@ -92,6 +95,7 @@ def scrape_workday(config: dict | None = None) -> list[dict]:
                 continue
             seen_ids.add(job_id)
 
+            logger.info("Workday [%s] job URL: %s", name, job_url)
             jobs.append({
                 "id": job_id,
                 "title": title,
