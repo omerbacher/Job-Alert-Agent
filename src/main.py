@@ -154,15 +154,21 @@ if __name__ == "__main__":
     if DRY_RUN:
         logger.info("DRY RUN mode enabled — no Telegram alerts will be sent.")
 
-    # Run all tiers immediately on startup
-    run_priority()
-    run_regular()
-    run_defense()
-    run_workday()
-    run_greenhouse()
-    run_google()
-    run_smartrecruiters()
-    run_amazon()
+    # Run all tiers immediately on startup — errors are logged but never crash the process
+    for name, fn in [
+        ("priority", run_priority),
+        ("regular", run_regular),
+        ("defense", run_defense),
+        ("workday", run_workday),
+        ("greenhouse", run_greenhouse),
+        ("google", run_google),
+        ("smartrecruiters", run_smartrecruiters),
+        ("amazon", run_amazon),
+    ]:
+        try:
+            fn()
+        except Exception as exc:
+            logger.error("Startup scan %r failed: %s", name, exc)
 
     scheduler = BlockingScheduler()
 
@@ -234,4 +240,10 @@ if __name__ == "__main__":
         start_hour,
         end_hour,
     )
-    scheduler.start()
+    try:
+        scheduler.start()  # BlockingScheduler — blocks main thread indefinitely
+    except KeyboardInterrupt:
+        logger.info("Scheduler stopped by user.")
+    except Exception as exc:
+        logger.critical("Scheduler crashed: %s", exc)
+        raise
