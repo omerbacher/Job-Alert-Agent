@@ -163,8 +163,6 @@ if __name__ == "__main__":
     run_google()
     run_smartrecruiters()
     run_amazon()
-    run_general()
-    run_digest()
 
     scheduler = BlockingScheduler()
 
@@ -224,13 +222,6 @@ if __name__ == "__main__":
         name="amazon_scan",
     )
 
-    # General LinkedIn scan: every 30 min, 08:00–22:00
-    scheduler.add_job(
-        run_general,
-        trigger=CronTrigger(hour="8-21", minute="*/30"),
-        name="general_scan",
-    )
-
     # Daily digest at 08:00
     scheduler.add_job(
         run_digest,
@@ -239,7 +230,7 @@ if __name__ == "__main__":
     )
 
     logger.info(
-        "Schedulers started — priority/workday/google every 10min, regular/greenhouse/general every 30min (%02d:00-%02d:00), defense daily at 09:00, digest daily at 08:00.",
+        "Schedulers started — priority/workday/google/amazon every 10min, regular/greenhouse/smartrecruiters every 30min (%02d:00-%02d:00), defense daily at 09:00, digest daily at 08:00.",
         start_hour,
         end_hour,
     )

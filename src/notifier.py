@@ -148,7 +148,7 @@ def send_alert(
 
         async def _send():
             bot = Bot(token=token)
-            await bot.send_message(chat_id=chat_id, text=text)
+            await bot.send_message(chat_id=chat_id, text=text, disable_web_page_preview=True)
 
         asyncio.run(_send())
         logger.info("Alert sent: %s at %s", title, company)
@@ -189,7 +189,7 @@ def send_digest(jobs: list[dict]):
 
         async def _send():
             bot = Bot(token=token)
-            await bot.send_message(chat_id=chat_id, text=text)
+            await bot.send_message(chat_id=chat_id, text=text, disable_web_page_preview=True)
 
         asyncio.run(_send())
         logger.info("Digest sent: %d jobs", len(jobs))

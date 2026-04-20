@@ -121,7 +121,8 @@ def scrape_regular(config: dict | None = None) -> list[dict]:
     return jobs
 
 
-def _scrape_no_company_filter(search_terms: list[str], locations: list[str], hours_old: int) -> list[dict]:
+def _scrape_no_company_filter(search_terms: list[str], locations: list[str], hours_old: int, allowed_companies: list[str]) -> list[dict]:
+    allowed_lower = [c.lower() for c in allowed_companies]
     seen_ids: set[str] = set()
     jobs: list[dict] = []
 
@@ -160,6 +161,10 @@ def _scrape_no_company_filter(search_terms: list[str], locations: list[str], hou
             if not passes_cs_filter(description):
                 continue
 
+            # Strict company filter: must be in allowed list
+            if company.lower() not in allowed_lower:
+                continue
+
             location_lower = location_val.lower()
             if not any(loc.lower() in location_lower for loc in locations):
                 continue
@@ -183,10 +188,12 @@ def _scrape_no_company_filter(search_terms: list[str], locations: list[str], hou
 def scrape_general(config: dict | None = None) -> list[dict]:
     if config is None:
         config = _load_config()
+    allowed = config["priority_companies"] + config["regular_companies"]
     jobs = _scrape_no_company_filter(
         search_terms=GENERAL_SEARCH_TERMS,
         locations=config["locations"],
         hours_old=config["hours_old"],
+        allowed_companies=allowed,
     )
     logger.info("General scrape found %d unique jobs", len(jobs))
     return jobs
