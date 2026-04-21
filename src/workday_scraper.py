@@ -102,6 +102,7 @@ def scrape_workday(config: dict | None = None) -> list[dict]:
             seen_ids.add(job_id)
 
             logger.info("Workday [%s] job URL: %s", name, job_url)
+            logger.info(f"Job description length: {len(description)}")
             jobs.append({
                 "id": job_id,
                 "title": title,

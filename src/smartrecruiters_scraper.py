@@ -90,6 +90,7 @@ def scrape_smartrecruiters(config: dict | None = None) -> list[dict]:
 
             # Fetch full description for Stage 2
             description = _fetch_description(identifier, job_id_sr)
+            logger.info(f"Job description length: {len(description)}")
 
             # Stage 2: CS relevance
             if not is_cs_relevant(title, description):

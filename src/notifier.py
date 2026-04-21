@@ -14,6 +14,7 @@ _REQUIREMENT_KEYWORDS = (
     "proficiency", "familiar", "background", "minimum", "required",
     "must", "ability", "skill", "year", "gpa", "average", "fluent",
     "understanding", "passion", "motivated", "advantage",
+    "python", "c++", "software", "algorithm", "data",
 )
 
 _GENERIC_TITLES = {"student", "intern"}
@@ -63,48 +64,43 @@ def _is_valid_title(title: str) -> bool:
     return True
 
 
+_STRIP_PREFIX = re.compile(r"^[\s•·\-–\*·]*(?:\d+[.):\s]+)?\s*")
+
+
 def _extract_bullets(description: str, max_bullets: int = 4) -> list[str]:
     if not description or len(description) < 50:
         return []
 
-    # Split on newlines first; also split on ". " for dense single-line descriptions
-    raw_lines: list[str] = []
-    for segment in re.split(r"\r\n|\n|\r", description):
-        if ". " in segment and len(segment) > 200:
-            raw_lines.extend(re.split(r"\.\s+", segment))
-        else:
-            raw_lines.append(segment)
-
-    _STRIP_PREFIX = re.compile(r"^[\s•·\-–\*·]+|\s*\d+\.\s*")
-
     def _clean(line: str) -> str:
         return _STRIP_PREFIX.sub("", line).strip()
+
+    # Step 1: split by newlines
+    newline_segments = [s.strip() for s in re.split(r"\r\n|\n|\r", description) if s.strip()]
+
+    # Step 2: if fewer than 3 lines, the description is a dense paragraph — split by sentences
+    if len(newline_segments) >= 3:
+        segments = newline_segments
+    else:
+        segments = [s.strip() for s in re.split(r"\.\s+", description) if s.strip()]
 
     bullets: list[str] = []
     fallback_lines: list[str] = []
 
-    for line in raw_lines:
-        line = line.strip()
-        if not line:
+    for seg in segments:
+        cleaned = _clean(seg)
+        if not cleaned or len(cleaned) < 15 or len(cleaned) > 200:
             continue
 
-        cleaned = _clean(line)
-        if not cleaned:
-            continue
-
-        # Collect non-empty lines for fallback
-        if len(fallback_lines) < 3 and 15 <= len(cleaned) <= 150:
+        if len(fallback_lines) < 3:
             fallback_lines.append(cleaned)
 
-        # Keyword match for requirements section
-        line_lower = line.lower()
-        if any(kw in line_lower for kw in _REQUIREMENT_KEYWORDS):
-            if 15 <= len(cleaned) <= 150:
-                bullets.append(cleaned)
+        if any(kw in seg.lower() for kw in _REQUIREMENT_KEYWORDS):
+            bullets.append(cleaned)
+
         if len(bullets) == max_bullets:
             break
 
-    return bullets if bullets else fallback_lines
+    return bullets if bullets else fallback_lines[:3]
 
 
 def _infer_job_type(title: str, description: str) -> str:
@@ -161,6 +157,8 @@ def send_alert(
 
         logger.info("Description length: %d", len(description))
         logger.info("Description preview: %s", description[:200])
+        print(f"DEBUG description length: {len(description)}")
+        print(f"DEBUG description preview: {repr(description[:300])}")
         job_type = _infer_job_type(title, description)
         bullets = _extract_bullets(description)
         logger.info("Bullets extracted: %s", bullets)
