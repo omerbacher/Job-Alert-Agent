@@ -23,6 +23,16 @@ NON_CS_SIGNALS = [
 ]
 
 
+BLOCKED_TITLE_PHRASES = [
+    "practical engineering", "electrical engineering", "mechanical engineering",
+    "chemical engineering", "civil engineering", "industrial engineering",
+    "materials engineering", "optical engineering", "photonics",
+    "laser", "rf engineer", "antenna", "radar", "physics student",
+    "chemistry student", "biology student", "economics student",
+    "cpa", "accounting", "marketing intern", "sales intern",
+    "customer support", "project coordinator", "supply chain",
+]
+
 ALLOWED_LOCATIONS = [
     "tel aviv", "herzliya", "raanana", "rehovot", "petah tikva",
     "rishon", "holon", "kfar saba", "netanya", "israel",
@@ -58,6 +68,8 @@ def passes_location_filter(location: str) -> bool:
 def passes_title_filter(title: str) -> bool:
     """Stage 1: title must contain intern / internship / student. No exceptions."""
     t = title.lower()
+    if any(phrase in t for phrase in BLOCKED_TITLE_PHRASES):
+        return False
     return any(w in t for w in INTERN_WORDS)
 
 
