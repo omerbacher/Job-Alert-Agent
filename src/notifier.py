@@ -10,11 +10,15 @@ from telegram import Bot
 logger = logging.getLogger(__name__)
 
 _REQUIREMENT_KEYWORDS = (
-    "degree", "student", "pursuing", "experience", "knowledge",
-    "proficiency", "familiar", "background", "minimum", "required",
-    "must", "ability", "skill", "year", "gpa", "average", "fluent",
-    "understanding", "passion", "motivated", "advantage",
-    "python", "c++", "software", "algorithm", "data",
+    "degree", "pursuing", "b.sc", "m.sc", "knowledge",
+    "proficiency", "minimum", "required", "must", "skill",
+    "experience", "familiarity", "background", "advantage",
+    "fluent", "gpa",
+)
+
+_DEPRIORITIZE_PREFIXES = (
+    "build", "develop", "design", "implement",
+    "create", "manage", "lead", "responsible",
 )
 
 _GENERIC_TITLES = {"student", "intern"}
@@ -83,51 +87,25 @@ def _extract_bullets(description: str, max_bullets: int = 4) -> list[str]:
     else:
         segments = [s.strip() for s in re.split(r"\.\s+", description) if s.strip()]
 
-    bullets: list[str] = []
-    fallback_lines: list[str] = []
+    preferred: list[str] = []
+    deprioritized: list[str] = []
 
     for seg in segments:
         cleaned = _clean(seg)
         if not cleaned or len(cleaned) < 15 or len(cleaned) > 200:
             continue
 
-        if len(fallback_lines) < 3:
-            fallback_lines.append(cleaned)
+        lower = cleaned.lower()
+        if any(lower.startswith(p) for p in _DEPRIORITIZE_PREFIXES):
+            deprioritized.append(cleaned)
+        elif any(kw in lower for kw in _REQUIREMENT_KEYWORDS):
+            preferred.append(cleaned)
 
-        if any(kw in seg.lower() for kw in _REQUIREMENT_KEYWORDS):
-            bullets.append(cleaned)
-
-        if len(bullets) == max_bullets:
+        if len(preferred) == max_bullets:
             break
 
-    return bullets if bullets else fallback_lines[:3]
-
-
-def _infer_job_type(title: str, description: str) -> str:
-    text = (title + " " + description).lower()
-    if any(w in text for w in ("hardware", "fpga", "pcb", "embedded", "vlsi", "rtl", "asic")):
-        return "Hardware"
-    if any(w in text for w in ("machine learning", "ml ", "deep learning", "ai ", "data science", "nlp")):
-        return "ML / AI"
-    if any(w in text for w in ("data", "analytics", "bi ", "business intelligence")):
-        return "Data"
-    if any(w in text for w in ("security", "cyber", "infosec", "penetration", "soc ")):
-        return "Cybersecurity"
-    if any(w in text for w in ("finance", "accounting", "economics", "financial")):
-        return "Finance"
-    if any(w in text for w in ("devops", "sre ", "infrastructure", "cloud", "kubernetes", "docker")):
-        return "DevOps / Cloud"
-    if any(w in text for w in ("frontend", "front-end", "react", "vue", "angular", "ui ", "ux ")):
-        return "Frontend"
-    if any(w in text for w in ("backend", "back-end", "server", "api ", "microservice")):
-        return "Backend"
-    if any(w in text for w in ("fullstack", "full-stack", "full stack")):
-        return "Full-Stack"
-    if any(w in text for w in ("software", "developer", "engineer", "programming", "coding")):
-        return "Software"
-    if any(w in text for w in ("research", "phd", "academic", "scientist")):
-        return "Research"
-    return "Engineering"
+    combined = preferred + deprioritized
+    return combined[:max_bullets]
 
 
 # ---------------------------------------------------------------------------
@@ -141,6 +119,7 @@ def send_alert(
     url: str,
     source: str = "",
     description: str = "",
+    department: str = "",
 ) -> bool:
     """Send a single job alert. Returns False if the job is filtered out."""
     if not _is_valid_title(title):
@@ -155,11 +134,6 @@ def send_alert(
         token = os.environ["TELEGRAM_TOKEN"]
         chat_id = os.environ["TELEGRAM_CHAT_ID"]
 
-        logger.info("Description length: %d", len(description))
-        logger.info("Description preview: %s", description[:200])
-        print(f"DEBUG description length: {len(description)}")
-        print(f"DEBUG description preview: {repr(description[:300])}")
-        job_type = _infer_job_type(title, description)
         bullets = _extract_bullets(description)
         logger.info("Bullets extracted: %s", bullets)
 
@@ -167,13 +141,12 @@ def send_alert(
             "🚨 New Job Match!",
             "",
             f"📌 {title} / {company}",
-            f"| {job_type}",
-            f"📍 {location}",
+            f"📍 {location}" + (f" | {department}" if department else ""),
         ]
 
         if bullets:
             lines += ["", "📋 Requirements:"]
-            lines += [f"• {b}" for b in bullets]
+            lines += [f"- {b}" for b in bullets]
 
         lines += ["", f"🔗 {url}"]
         if source:
