@@ -87,11 +87,13 @@ def is_cs_relevant(title: str, description: str) -> bool:
     """
     if description and len(description) >= 100:
         d = description.lower()
-        has_cs    = any(sig in d for sig in CS_SIGNALS)
+        cs_count   = sum(1 for sig in CS_SIGNALS if sig in d)
         has_non_cs = any(sig in d for sig in NON_CS_SIGNALS)
-        if has_non_cs and not has_cs:
+        if has_non_cs and cs_count == 0:
             return False
-        if has_cs:
+        if has_non_cs and cs_count >= 1:
+            return cs_count >= 2
+        if cs_count >= 1:
             return True
         # Neither signal found in description — fall through to title
     # No description or no signal: require a CS keyword in the title
