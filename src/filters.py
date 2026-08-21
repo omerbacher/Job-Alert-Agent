@@ -31,6 +31,8 @@ BLOCKED_TITLE_PHRASES = [
     "chemistry student", "biology student", "economics student",
     "cpa", "accounting", "marketing intern", "sales intern",
     "customer support", "project coordinator", "supply chain",
+    "phd", "ph.d", "doctoral", "post-doc", "postdoc", "post doc",
+    "dissertation", "thesis student",
 ]
 
 ALLOWED_LOCATIONS = [
